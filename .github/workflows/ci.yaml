@@ -26,6 +26,8 @@ jobs:
         run: docker compose exec -T app python -m pytest tests -q -p no:cacheprovider
       - name: Live PostgreSQL API and frontend smoke test
         run: docker compose exec -T app python tests/smoke_live.py
+      - name: Load workload integrity scenarios with an isolated API
+        run: docker compose exec -T app python tests/loadtest/smoke_workload.py
       - name: Service logs
         if: always()
         run: docker compose logs --no-color --tail 100

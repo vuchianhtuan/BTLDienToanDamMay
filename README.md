@@ -103,6 +103,8 @@ Ba vùng làm việc đề xuất: hạ tầng/tích hợp ở `deploy/`; backen
 
 ## Tạo tải
 
+TV3 xem [hướng dẫn workload và báo cáo](loadtest/README.md), [tiến độ và các mốc tích hợp](docs/TV3_PROGRESS.md).
+
 Upload ít nhất một tệp trước. Chạy Locust trên host của container app:
 
 ```powershell

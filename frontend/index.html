@@ -44,6 +44,11 @@
             <button id="upload" type="submit" style="margin-top: 15px">
               Tải lên và lưu SHA-256
             </button>
+            <button id="cancelUpload" class="secondary" type="button" hidden>Hủy tải lên</button>
+            <div id="uploadProgress" class="upload-progress" hidden>
+              <label for="progress" id="progressText">Đang chuẩn bị tải lên…</label>
+              <progress id="progress" max="100" value="0"></progress>
+            </div>
           </form>
         </section>
         <section class="panel">
@@ -86,13 +91,13 @@
                 <th>Thao tác</th>
               </tr>
             </thead>
-            <tbody id="files"></tbody>
+            <tbody id="files" aria-busy="true"><tr><td colspan="4" class="empty">Đang tải danh sách…</td></tr></tbody>
           </table>
         </div>
         <div class="pager">
-          <button id="prev" class="secondary">Trước</button
+          <button id="prev" class="secondary" disabled>Trước</button
           ><span id="page" class="small"></span
-          ><button id="next" class="secondary">Sau</button>
+          ><button id="next" class="secondary" disabled>Sau</button>
         </div>
       </section>
       <p class="foot">
