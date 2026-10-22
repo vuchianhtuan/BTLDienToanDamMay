@@ -34,4 +34,6 @@ Chưa triển khai hoặc kiểm chứng trên OpenStack: DevStack multi-node, T
 
 Đã tách `app` thành config/database/models/routes/services/storage và tách frontend thành HTML/CSS/JavaScript trong `frontend/`. Backend và UI giữ nguyên HTTP contract; smoke test kiểm tra cả các asset frontend. Bổ sung test xử lý mật khẩu database có ký tự đặc biệt, đưa tổng bộ pytest lên 17 ca. Kết quả build/clone sau khi tách được kiểm tra riêng trước khi push.
 
+Đã clone Git sạch sang thư mục mới, xác nhận không mang theo `.env`, tạo cấu hình từ `.env.example`, build và chạy stack riêng trên cổng 18000 với database/volume mới. Kết quả: 17 passed và smoke API/PostgreSQL/frontend assets đạt. Stack thử nghiệm đã dừng; ứng dụng chính ở cổng 8000 vẫn được giữ chạy.
+
 Workflow GitHub Actions build Docker, chạy pytest và smoke PostgreSQL khi push main hoặc tạo PR. Việc có workflow trong repo không đồng nghĩa đã bật branch protection; trạng thái từng lần CI cần xem trên GitHub Actions.
