@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>File Integrity · Cloud Lab</title>
+    <link rel="stylesheet" href="/assets/styles.css" />
+  </head>
+  <body>
+    <header>
+      <div class="brand">File Integrity <span>/ Cloud Lab</span></div>
+      <div class="tag">SHA-256 · PostgreSQL · Object storage</div>
+    </header>
+    <main>
+      <div class="intro">
+        <div>
+          <h1>Lưu trữ và kiểm tra tính toàn vẹn</h1>
+          <p>Tải tệp lên, tải xuống và kiểm tra nội dung có thay đổi.</p>
+        </div>
+        <div id="status" class="status" role="status">
+          Đang kiểm tra dịch vụ…
+        </div>
+      </div>
+      <div
+        id="message"
+        class="message"
+        role="status"
+        aria-live="polite"
+        hidden
+      ></div>
+      <div class="top">
+        <section class="panel">
+          <h2>01 &nbsp; Tải tệp lên</h2>
+          <form id="uploadForm">
+            <div class="drop" id="drop">
+              <strong>Chọn hoặc kéo tệp vào đây</strong><br /><input
+                id="file"
+                type="file"
+                required
+                aria-label="Chọn tệp tải lên"
+              />
+              <div class="small" id="limit">Giới hạn được đọc từ máy chủ.</div>
+            </div>
+            <button id="upload" type="submit" style="margin-top: 15px">
+              Tải lên và lưu SHA-256
+            </button>
+          </form>
+        </section>
+        <section class="panel">
+          <h2>02 &nbsp; Kiểm tra nội dung</h2>
+          <p class="small">
+            Khi bấm Verify, hệ thống đọc lại tệp từ storage và so sánh SHA-256
+            với giá trị lưu lúc tải lên.
+          </p>
+          <ol class="steps">
+            <li>Tải tệp lên và lưu metadata.</li>
+            <li>Tải xuống hoặc kiểm tra trong danh sách.</li>
+            <li>Xem kết quả toàn vẹn cùng hai mã băm.</li>
+          </ol>
+          <label for="apiKey" class="small">API key nếu máy chủ yêu cầu</label
+          ><input
+            id="apiKey"
+            class="key"
+            type="password"
+            autocomplete="off"
+            placeholder="Để trống khi chạy demo local"
+          />
+          <div class="small">
+            Key chỉ giữ trong trang hiện tại. Đây là kho tệp dùng chung của
+            nhóm.
+          </div>
+        </section>
+      </div>
+      <section class="panel">
+        <div class="sectionhead">
+          <h2>Kho tệp</h2>
+          <button class="secondary" id="refresh">Làm mới</button>
+        </div>
+        <div class="tablewrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Tệp / SHA-256 gốc</th>
+                <th>Dung lượng</th>
+                <th>Thời gian tải lên</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="files"></tbody>
+          </table>
+        </div>
+        <div class="pager">
+          <button id="prev" class="secondary">Trước</button
+          ><span id="page" class="small"></span
+          ><button id="next" class="secondary">Sau</button>
+        </div>
+      </section>
+      <p class="foot">
+        Bản lab học phần Điện toán đám mây. Hash phát hiện thay đổi so với
+        metadata; hệ thống chưa có chữ ký số hoặc database chống sửa đổi.
+      </p>
+    </main>
+    <script src="/assets/app.js" defer></script>
+  </body>
+</html>

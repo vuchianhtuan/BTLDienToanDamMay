@@ -1,0 +1,34 @@
+name: Application CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: app-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  application-tests:
+    name: Docker build and application tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build and start isolated local stack
+        run: |
+          cp .env.example .env
+          docker compose up --build -d --wait --wait-timeout 180
+      - name: Unit and adapter contract tests
+        run: docker compose exec -T app python -m pytest tests -q -p no:cacheprovider
+      - name: Live PostgreSQL API and frontend smoke test
+        run: docker compose exec -T app python tests/smoke_live.py
+      - name: Service logs
+        if: always()
+        run: docker compose logs --no-color --tail 100
+      - name: Clean up ephemeral CI stack
+        if: always()
+        run: docker compose down

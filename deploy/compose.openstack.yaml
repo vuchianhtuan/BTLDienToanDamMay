@@ -1,0 +1,26 @@
+# Run only on an existing private App VM with Docker + Compose installed.
+# Use: docker compose --env-file app.env -f compose.openstack.yaml up -d --build --wait
+name: file-integrity-cloud-app
+services:
+  app:
+    build:
+      context: ..
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?Set remote PostgreSQL URL}
+      STORAGE_BACKEND: swift
+      APP_API_KEY: ${APP_API_KEY:?Set a lab API key}
+      MAX_FILE_BYTES: ${MAX_FILE_BYTES:-26214400}
+      OS_AUTH_URL: ${OS_AUTH_URL:?Set Keystone URL}
+      OS_APPLICATION_CREDENTIAL_ID: ${OS_APPLICATION_CREDENTIAL_ID:?Set application credential ID}
+      OS_APPLICATION_CREDENTIAL_SECRET: ${OS_APPLICATION_CREDENTIAL_SECRET:?Set application credential secret}
+      OS_REGION_NAME: ${OS_REGION_NAME:-RegionOne}
+      OS_INTERFACE: ${OS_INTERFACE:-internal}
+      SWIFT_CONTAINER: ${SWIFT_CONTAINER:-file-integrity}
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/ready', timeout=20)"]
+      interval: 30s
+      timeout: 25s
+      retries: 3
+    restart: unless-stopped

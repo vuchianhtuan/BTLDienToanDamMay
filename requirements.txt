@@ -1,0 +1,9 @@
+fastapi==0.115.12
+uvicorn==0.34.2
+SQLAlchemy==2.0.40
+psycopg[binary]==3.2.9
+python-swiftclient==4.8.0
+keystoneauth1==5.10.0
+httpx==0.28.1
+pytest==8.3.5
+locust==2.37.5

@@ -1,0 +1,17 @@
+.git
+.env
+deploy/app.env
+.venv
+__pycache__
+.pytest_cache
+data
+test-results
+.env.*
+!.env.example
+**/clouds.yaml
+**/clouds.yml
+**/secure.yaml
+**/openrc*
+*.pem
+*.key
+.github
