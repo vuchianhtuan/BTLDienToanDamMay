@@ -1,5 +1,7 @@
 # Triển khai ứng dụng lên OpenStack sau giai đoạn local
 
+Phần TV3 về Octavia/Heat/Aodh, kiểm tra offline, thu bằng chứng và hợp đồng bàn giao nằm ở [elasticity/README.md](elasticity/README.md). Các template này chưa được kiểm chứng trên cụm thật.
+
 Đây là cấu hình ứng dụng, chưa phải bộ cài DevStack hoặc minh chứng hạ tầng. Chỉ thực hiện sau khi nhóm có VM và endpoint thật. Không chạy các thay đổi controller/network khi thành viên khác đang kiểm thử.
 
 ## Điều kiện

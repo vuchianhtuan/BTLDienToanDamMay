@@ -1,6 +1,8 @@
 .git
 .env
 deploy/app.env
+deploy/elasticity/private
+deploy/elasticity/evidence
 .venv
 __pycache__
 .pytest_cache

@@ -1,0 +1,2 @@
+# Tooling only; does not change the application's Linux dependency lock.
+PyYAML==6.0.2

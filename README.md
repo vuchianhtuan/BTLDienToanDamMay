@@ -71,6 +71,8 @@ curl.exe http://localhost:8000/api/files
 
 ## Chuyển sang OpenStack
 
+TV3 xem [bộ cấu hình và runbook elasticity](deploy/elasticity/README.md) để chuẩn bị Octavia, Heat/Aodh, failover và minh chứng. Bộ này có kiểm tra offline; chưa được triển khai trên cụm thật.
+
 Xem [hướng dẫn triển khai](deploy/README.md). Cấu hình chạy app trên VM private có sẵn tại `deploy/compose.openstack.yaml`. Chưa có hạ tầng OpenStack thật trong phiên triển khai local; Swift, Cinder, Octavia, hai AZ và autoscaling cần kiểm thử tích hợp riêng.
 
 **Không chạy nhiều App VM với storage local độc lập.** Các App VM phải cùng dùng Swift và cùng PostgreSQL; schema/storage không nằm trên từng app instance.

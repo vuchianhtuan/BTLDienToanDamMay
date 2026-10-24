@@ -1,0 +1,151 @@
+heat_template_version: '2018-08-31'
+description: Phase 2 - one permanent app in AZ-1, 1-2 app VMs in AZ-2, metric-driven Heat scaling.
+parameters:
+  image_id: {type: string}
+  flavor_id: {type: string}
+  network_id: {type: string}
+  subnet_id: {type: string}
+  security_group_id: {type: string}
+  key_name: {type: string}
+  az_a: {type: string}
+  az_b: {type: string}
+  provider: {type: string, default: amphora}
+  app_port: {type: number, default: 8000}
+  bootstrap_user_data:
+    type: string
+    hidden: true
+  metric_name:
+    type: string
+    description: Existing metric name; no assumed cpu_util metric.
+  aggregation_method:
+    type: string
+    description: Existing archive policy method, e.g. rate:mean for cumulative cpu.
+  threshold_high: {type: number}
+  threshold_low: {type: number}
+  granularity:
+    type: number
+    constraints:
+      - range: {min: 1}
+  evaluation_periods:
+    type: number
+    default: 3
+    constraints:
+      - range: {min: 1}
+  cooldown:
+    type: number
+    default: 300
+    constraints:
+      - range: {min: 60}
+  alarms_enabled:
+    type: boolean
+    default: false
+resources:
+  loadbalancer:
+    type: lb-core.yaml
+    properties:
+      subnet_id: {get_param: subnet_id}
+      provider: {get_param: provider}
+      app_port: {get_param: app_port}
+  baseline_az_a:
+    type: app-member.yaml
+    properties:
+      image_id: {get_param: image_id}
+      flavor_id: {get_param: flavor_id}
+      network_id: {get_param: network_id}
+      subnet_id: {get_param: subnet_id}
+      security_group_id: {get_param: security_group_id}
+      key_name: {get_param: key_name}
+      availability_zone: {get_param: az_a}
+      pool_id: {get_attr: [loadbalancer, pool_id]}
+      app_port: {get_param: app_port}
+      metering_group: {get_param: 'OS::stack_id'}
+      bootstrap_user_data: {get_param: bootstrap_user_data}
+  app_group:
+    type: OS::Heat::AutoScalingGroup
+    properties:
+      min_size: 1
+      desired_capacity: 1
+      max_size: 2
+      resource:
+        type: app-member.yaml
+        properties:
+          image_id: {get_param: image_id}
+          flavor_id: {get_param: flavor_id}
+          network_id: {get_param: network_id}
+          subnet_id: {get_param: subnet_id}
+          security_group_id: {get_param: security_group_id}
+          key_name: {get_param: key_name}
+          availability_zone: {get_param: az_b}
+          pool_id: {get_attr: [loadbalancer, pool_id]}
+          app_port: {get_param: app_port}
+          metering_group: {get_param: 'OS::stack_id'}
+          bootstrap_user_data: {get_param: bootstrap_user_data}
+  scale_up:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      auto_scaling_group_id: {get_resource: app_group}
+      adjustment_type: change_in_capacity
+      scaling_adjustment: 1
+      cooldown: {get_param: cooldown}
+  scale_down:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      auto_scaling_group_id: {get_resource: app_group}
+      adjustment_type: change_in_capacity
+      scaling_adjustment: -1
+      cooldown: {get_param: cooldown}
+  high_alarm:
+    type: OS::Aodh::GnocchiAggregationByResourcesAlarm
+    properties:
+      enabled: {get_param: alarms_enabled}
+      metric: {get_param: metric_name}
+      aggregation_method: {get_param: aggregation_method}
+      resource_type: instance
+      query:
+        str_replace:
+          template: '{"=": {"server_group": "$GROUP"}}'
+          params:
+            $GROUP: {get_param: 'OS::stack_id'}
+      threshold: {get_param: threshold_high}
+      comparison_operator: gt
+      granularity: {get_param: granularity}
+      evaluation_periods: {get_param: evaluation_periods}
+      repeat_actions: true
+      alarm_actions:
+        - str_replace:
+            template: trust+$URL
+            params:
+              $URL: {get_attr: [scale_up, signal_url]}
+  low_alarm:
+    type: OS::Aodh::GnocchiAggregationByResourcesAlarm
+    properties:
+      enabled: {get_param: alarms_enabled}
+      metric: {get_param: metric_name}
+      aggregation_method: {get_param: aggregation_method}
+      resource_type: instance
+      query:
+        str_replace:
+          template: '{"=": {"server_group": "$GROUP"}}'
+          params:
+            $GROUP: {get_param: 'OS::stack_id'}
+      threshold: {get_param: threshold_low}
+      comparison_operator: lt
+      granularity: {get_param: granularity}
+      evaluation_periods: {get_param: evaluation_periods}
+      repeat_actions: true
+      alarm_actions:
+        - str_replace:
+            template: trust+$URL
+            params:
+              $URL: {get_attr: [scale_down, signal_url]}
+outputs:
+  loadbalancer_id:
+    value: {get_attr: [loadbalancer, loadbalancer_id]}
+  pool_id:
+    value: {get_attr: [loadbalancer, pool_id]}
+  vip_address:
+    value: {get_attr: [loadbalancer, vip_address]}
+  high_alarm_id:
+    value: {get_resource: high_alarm}
+  low_alarm_id:
+    value: {get_resource: low_alarm}

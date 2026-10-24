@@ -23,6 +23,24 @@ CI được bổ sung bước smoke workload. Chưa xác nhận kết quả Dock
 
 ## Các mốc còn lại
 
+### Chuẩn bị bổ sung ngày 24 tháng 10 năm 2026
+
+Theo `Huong_dan_phan_chia_cong_viec_nhom_OpenStack.docx`, TV1 chủ trì hạ tầng Controller và hai Compute; TV3 chủ trì UI/Locust và elasticity, phối hợp TV1 khi tích hợp. Việc máy của TV3 làm Compute 2 không chuyển toàn bộ trách nhiệm hạ tầng sang TV3.
+
+Đã thêm bộ `deploy/elasticity/`:
+
+- Template HTTP Octavia cho hai App VM có sẵn, health monitor `/health/ready`.
+- Template autoscaling với baseline một app ở AZ-1 và ASG 1-2 app ở AZ-2, tổng 2-3 app; mỗi app mới tự có pool member, không gắn floating IP. Alarms mặc định tắt.
+- Bootstrap mẫu cho prebuilt app image, dùng cùng Swift/PostgreSQL; credential và file cấu hình thật nằm ngoài Git và Docker build context.
+- Validator offline cho YAML, tham chiếu/nested interface và môi trường; công cụ preflight/snapshot chỉ đọc, probe download/verify qua LB và mẫu báo cáo chi phí/demo/minh chứng.
+- CI riêng kiểm tra template/tooling; không thay dependency lock của app.
+
+Kiểm chứng trên Windows/Python 3.13: validator 4 template đạt; 14 ca unittest tooling đạt; 17 ca pytest ứng dụng đạt (1 cảnh báo deprecation có sẵn); smoke workload qua HTTP API tạm đạt. Các ca tooling gồm cấu hình lỗi, thiếu CLI, che thông tin nhạy cảm và phát hiện download bị sửa dù verify báo intact. Kiểm thử dùng thư mục tạm riêng, không thay dữ liệu app đang có. CI Python 3.12/Linux mới được cấu hình, chưa khẳng định đã chạy đạt trên GitHub.
+
+**Chưa triển khai cloud:** chưa có OpenStack CLI/credential/endpoint cụm nhóm trong phiên này; chưa chạy Heat server-side validation, chưa tạo LB/VM/alarm, chưa thử golden image/cloud-init, failover hay scale thật. Cần TV1 cung cấp phiên bản/provider/network/AZ/metric và TV2 cung cấp app image/shared storage. Các số threshold trong env mẫu chỉ là ví dụ 1 vCPU, chưa phải số đã đo.
+
+### Thứ tự tích hợp khi có đầu vào
+
 1. TV1 cung cấp Controller/Compute 2, nested KVM, mạng và AZ-2; TV3 phối hợp kiểm tra compute của mình đăng ký được. Chốt endpoint, quyền truy cập và phiên bản với TV1 trước khi cấu hình dịch vụ chung.
 2. TV2 cung cấp App VM dùng chung Swift/PostgreSQL. TV3 cấu hình Octavia với hai backend, health monitor, kiểm tra một backend dừng thì backend còn lại phục vụ được; App VM không có floating IP.
 3. Cùng TV1 chốt nguồn metric, đơn vị, khoảng đo và tài nguyên khả dụng. Viết cấu hình Heat/Aodh theo phiên bản cụm; App VM mới phải nhận cấu hình/credential và tự vào pool.

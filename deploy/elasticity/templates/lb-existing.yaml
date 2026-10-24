@@ -1,0 +1,47 @@
+heat_template_version: '2018-08-31'
+description: Phase 1 - register two existing private app addresses; never stops their VMs.
+parameters:
+  subnet_id:
+    type: string
+  provider:
+    type: string
+    default: amphora
+  backend_a:
+    type: string
+    constraints:
+      - custom_constraint: ip_addr
+  backend_b:
+    type: string
+    constraints:
+      - custom_constraint: ip_addr
+  app_port:
+    type: number
+    default: 8000
+resources:
+  loadbalancer:
+    type: lb-core.yaml
+    properties:
+      subnet_id: {get_param: subnet_id}
+      provider: {get_param: provider}
+      app_port: {get_param: app_port}
+  member_a:
+    type: OS::Octavia::PoolMember
+    properties:
+      pool: {get_attr: [loadbalancer, pool_id]}
+      address: {get_param: backend_a}
+      protocol_port: {get_param: app_port}
+      subnet: {get_param: subnet_id}
+  member_b:
+    type: OS::Octavia::PoolMember
+    properties:
+      pool: {get_attr: [loadbalancer, pool_id]}
+      address: {get_param: backend_b}
+      protocol_port: {get_param: app_port}
+      subnet: {get_param: subnet_id}
+outputs:
+  loadbalancer_id:
+    value: {get_attr: [loadbalancer, loadbalancer_id]}
+  pool_id:
+    value: {get_attr: [loadbalancer, pool_id]}
+  vip_address:
+    value: {get_attr: [loadbalancer, vip_address]}

@@ -10,6 +10,21 @@ concurrency:
   group: app-ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  elasticity-checks:
+    name: Offline Heat templates and TV3 tools
+    runs-on: ubuntu-latest
+    container: python:3.12-slim
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install validation tooling only
+        run: pip install -r deploy/elasticity/requirements-check.txt requests==2.34.2
+      - name: Check nested Heat references and tool behavior
+        run: |
+          python deploy/elasticity/validate.py
+          python -m unittest discover -s deploy/elasticity/tests -v
   application-tests:
     name: Docker build and application tests
     runs-on: ubuntu-latest
