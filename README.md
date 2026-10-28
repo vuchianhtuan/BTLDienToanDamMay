@@ -2,7 +2,7 @@
 
 Repository của nhóm: [BTLDienToanDamMay](https://github.com/vuchianhtuan/BTLDienToanDamMay). Thành viên mới bắt đầu từ [CONTRIBUTING.md](CONTRIBUTING.md), [API contract](docs/API_CONTRACT.md) và [kết quả kiểm chứng local](docs/VERIFICATION.md).
 
-Để dùng phần TV2 trên AWS, thành viên và agent đọc [AGENTS_TV2.md](AGENTS_TV2.md): hướng dẫn chạy, checklist người quản lý lab và quy trình cho agent.
+Agent triển khai hoặc chạy phần TV2 đọc duy nhất [AGENTS_TV2.md](AGENTS_TV2.md): điều kiện hạ tầng/quyền truy cập, triển khai code lên App VM, cấu hình, kiểm thử, rollback và checklist người quản lý lab.
 
 Ứng dụng bài tập lớn Điện toán đám mây: lưu tệp, tải xuống và kiểm tra SHA-256. Bản local chạy FastAPI + PostgreSQL thật + storage trên Docker volume. Adapter Swift dùng cùng API và được cấu hình riêng khi có OpenStack.
 

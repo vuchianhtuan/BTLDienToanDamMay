@@ -1,6 +1,8 @@
-# AGENTS_TV2 Hướng dẫn chạy phần TV2 cho thành viên và agent
+# AGENTS_TV2 Triển khai và sử dụng phần TV2
 
-Tài liệu này dành cho thành viên nhóm và coding agent hỗ trợ họ chạy phần TV2 trên lab OpenStack: upload, download và verify SHA-256, lưu tệp trong Swift và metadata trong PostgreSQL trên Cinder. Thành viên mở SSH tunnel từ máy mình tới ứng dụng đã triển khai; không cần Docker, Python, PostgreSQL hoặc DevStack trên máy cá nhân để dùng bản lab. Agent bắt đầu từ mục 8 để chọn đúng vai trò và quy trình.
+Đây là tài liệu bàn giao cho agent của các thành viên khác triển khai và kiểm tra phần TV2: FastAPI upload/list/download/verify SHA-256, nội dung tệp trong Swift, metadata trong PostgreSQL trên Cinder. Đọc mục 8 để chọn luồng công việc; **mục 9 hướng dẫn triển khai code từ repo lên App VM**, còn mục 2–3 hướng dẫn dùng ứng dụng đã triển khai qua tunnel. Agent chỉ cần được người dùng chỉ tới file này; không có file AGENTS riêng để đọc tiếp.
+
+Phạm vi triển khai là ứng dụng TV2 trên hạ tầng OpenStack đã có. VM, mạng, Swift/Keystone, PostgreSQL trên volume Cinder và quyền truy cập phải được lab hiện tại hoặc TV1 cung cấp. Repo chưa có bộ tự dựng lại toàn bộ OpenStack từ một EC2 trống. Trên App VM cần Docker Engine và Docker Compose; trên máy thành viên chỉ dùng tunnel thì không cần Docker/Python/PostgreSQL.
 
 **Điều kiện:** người quản lý lab đã bật EC2, hai VM App/DB hoạt động, cấp quyền SSH và API key cho thành viên. Merge code chỉ mang về script và tài liệu, không tự cấp quyền hoặc bật lab.
 
@@ -187,7 +189,7 @@ Chi tiết mô hình, kiểm thử quản trị và bằng chứng thật nằm 
 
 ### 8.1 Xác định phạm vi và đầu vào
 
-Mặc định tác vụ "chạy phần TV2", "mở lab" hoặc "kiểm tra kết nối" của thành viên là mở tunnel tới bản đang triển khai trên AWS và kiểm tra API. Nếu yêu cầu là sửa/chạy code mới trên máy thành viên, dùng quy trình local ở mục 7; nếu yêu cầu là triển khai hoặc vận hành lab với quyền quản trị, áp dụng checklist người quản lý ở mục 4–5 theo phạm vi đã được người dùng giao.
+Với yêu cầu **triển khai TV2**, thực hiện mục 9 để đưa đúng phiên bản code lên App VM và kiểm chứng; mở được tunnel tới bản cũ chưa hoàn thành tác vụ triển khai. Với yêu cầu chỉ mở lab/kiểm tra kết nối, thực hiện mục 2–3 và quy trình bên dưới. Nếu cần chạy code mới trên máy thành viên, dùng local ở mục 7. Các bước vận hành EC2/guest của người quản lý nằm ở mục 4–5. Xác định phạm vi từ yêu cầu người dùng trước khi chạy lệnh.
 
 | Đầu vào | Nguồn lấy | Xử lý khi thiếu |
 |---|---|---|
@@ -222,3 +224,162 @@ Không cần file trên ổ `D:` của Trường để chạy từ máy thành v
 - Báo URL local thực tế, trạng thái tunnel còn mở hay đã đóng và phần nào chưa kiểm chứng. Không chép nội dung key, token, credential hoặc danh sách dữ liệu cá nhân vào báo cáo.
 - Nếu EC2/guest tắt hoặc quyền chưa được cấp, nêu điều kiện còn thiếu và chỉ người quản lý tới mục 4–5. Không khẳng định code lỗi hoặc đã hoạt động chỉ dựa trên các báo cáo lịch sử trong `evidence/`.
 - Với yêu cầu truy cập/kiểm tra của thành viên, không chạy `btl-tv2 test-all`, `reboot-test`, dừng DB/EC2 hoặc triển khai code. Các thao tác quản trị chỉ nằm trong phạm vi công việc khi người dùng đã giao tác vụ đó; xem các điều kiện phối hợp nhóm ở [hướng dẫn đóng góp](CONTRIBUTING.md).
+
+## 9 Triển khai code TV2 bằng agent
+
+### 9.1 Đầu vào và điều kiện triển khai
+
+Agent cần xác định các giá trị sau trước khi thay đổi deployment:
+
+| Đầu vào | Lab TV2 đang có | Khi triển khai trên cụm khác |
+|---|---|---|
+| Phiên bản nguồn | Commit đã merge mà thành viên yêu cầu triển khai | Chốt commit cụ thể; không dùng một nhánh thay đổi không rõ phiên bản |
+| Đường tới App VM | SSH tới EC2, rồi dùng key quản trị guest trên EC2 | SSH trực tiếp hoặc bastion của cụm đích |
+| Quyền triển khai | Tài khoản EC2 có `sudo` và được phép dùng key guest; App VM có `sudo`/Docker | Quyền tương ứng do quản lý cụm cấp |
+| Backend dữ liệu | Swift và PostgreSQL/Cinder đang hoạt động trong lab | Container Swift, Keystone credential đúng project, DB đã tạo và mount Cinder bền vững |
+| Cấu hình bí mật | Tái sử dụng `app.env` từ deployment hiện tại trên App VM | Tạo `deploy/app.env` từ mẫu, nhận secret qua kênh riêng |
+| Phối hợp | Thống nhất phiên cập nhật lab vì container app sẽ được tạo lại | Thống nhất với người đang dùng cùng deployment |
+
+Quyền SSH chỉ để dùng tunnel chưa đủ để triển khai. Nếu thành viên thiếu quyền quản trị, yêu cầu người quản lý cấp quyền phù hợp hoặc thực hiện bước triển khai; không mượn private key của người khác. Không cần yêu cầu cấp lại secret nếu đã có `app.env` hợp lệ trên VM.
+
+Giữ nguyên API contract và schema trong lần bàn giao này. Mọi App VM dùng cùng DB/container Swift. VM mới trên cụm khác phải được cho phép kết nối tới PostgreSQL (security group và `pg_hba.conf`), Keystone và Swift; không đổi sang storage local để làm readiness xanh. Nếu chưa có các dịch vụ này, báo rõ phần hạ tầng còn thiếu thay vì khẳng định triển khai cloud đã xong.
+
+### 9.2 Đóng gói đúng commit trên máy thành viên
+
+Chạy PowerShell tại gốc repo, sau khi code đã được merge/cập nhật và working tree sạch. Agent kiểm tra mã thoát sau mỗi lệnh; nếu có thay đổi chưa commit thì lưu/chốt phiên bản trước, vì `git archive HEAD` không mang thay đổi chưa commit.
+
+```powershell
+git status --short
+$Release = (git rev-parse --short=12 HEAD).Trim()
+$Bundle = Join-Path $env:TEMP "tv2-$Release.tar.gz"
+git archive --format=tar.gz --output=$Bundle HEAD
+$Release
+```
+
+Ghi lại `$Release` để dùng cùng giá trị ở các shell tiếp theo. Archive chỉ chứa file được Git theo dõi, không chứa `.env`, `app.env`, key và cấu hình cá nhân đã bị ignore. Trước khi chuyển, xác nhận các file bí mật chưa từng bị theo dõi trong Git.
+
+Với lab hiện tại, thay hai giá trị dưới bằng endpoint và key của **tài khoản được cấp quyền triển khai**:
+
+```powershell
+$Ec2Target = 'ubuntu@IP_HOAC_DNS_HIEN_TAI'
+$Ec2Key = 'DUONG_DAN_TUYET_DOI_KEY_CUA_NGUOI_TRIEN_KHAI'
+scp -i $Ec2Key $Bundle "${Ec2Target}:/tmp/tv2-$Release.tar.gz"
+ssh -i $Ec2Key $Ec2Target
+```
+
+### 9.3 Chuyển archive từ EC2 tới App VM
+
+Chạy Bash trên EC2. Thay `COMMIT_12_KY_TU` bằng release vừa ghi. Đường dẫn key/known_hosts dưới đây là tài nguyên quản trị đã có **trên EC2 của lab**, không phải file phải lấy từ laptop Trường. Không chạy lại `deploy_guests.py` hoặc format volume để cập nhật code ứng dụng.
+
+```bash
+set -euo pipefail
+RELEASE=COMMIT_12_KY_TU
+[[ "$RELEASE" =~ ^[0-9a-f]{12}$ ]]
+APP_IP=$(sudo -n python3 -c 'import json; print(json.load(open("/srv/btl-tv2/state.json"))["app_ip"])')
+sudo -n scp -i /srv/btl-tv2/id_ed25519 \
+  -o StrictHostKeyChecking=yes \
+  -o UserKnownHostsFile=/srv/btl-tv2/known_hosts \
+  "/tmp/tv2-$RELEASE.tar.gz" "ubuntu@$APP_IP:/tmp/tv2-$RELEASE.tar.gz"
+btl-tv2 app
+```
+
+Trên cụm khác, chuyển cùng archive qua đường SSH được cấp tới App VM của cụm đó, rồi thực hiện bước 9.4. Không sử dụng state/key/địa chỉ private của lab Trường cho cụm khác.
+
+### 9.4 Chuẩn bị thư mục release và cấu hình trên App VM
+
+Chạy Bash trên **App VM**, không phải EC2 controller. Dùng một thư mục release mới để giữ lại mã nguồn bản trước; không giải nén đè lên bản đang chạy. Kiểm tra có Docker/Compose và dung lượng build trước:
+
+```bash
+set -euo pipefail
+RELEASE=COMMIT_12_KY_TU
+[[ "$RELEASE" =~ ^[0-9a-f]{12}$ ]]
+sudo -n docker info >/dev/null
+sudo -n docker compose version
+df -h /srv
+NEW_ROOT="/srv/file-integrity-releases/$RELEASE"
+sudo -n test ! -e "$NEW_ROOT"
+sudo -n install -d -m 755 "$NEW_ROOT"
+sudo -n tar -xzf "/tmp/tv2-$RELEASE.tar.gz" -C "$NEW_ROOT"
+```
+
+Nếu thư mục release đã tồn tại, xác minh nó thuộc lần triển khai nào rồi tiếp tục có chủ đích hoặc chọn thư mục release mới; không xóa đệ quy hoặc ghi đè để né lỗi.
+
+**Nâng cấp lab đang chạy:** tìm deployment đang chạy và giữ image cũ để có thể rollback. Lệnh inspect chỉ lấy đường dẫn/image, không in biến môi trường chứa secret. Lab hiện dùng Compose project `file-integrity-cloud-app`:
+
+```bash
+CID=$(sudo -n docker ps -q \
+  --filter label=com.docker.compose.project=file-integrity-cloud-app \
+  --filter label=com.docker.compose.service=app)
+test -n "$CID"
+PREVIOUS_DEPLOY=$(sudo -n docker inspect --format '{{ index .Config.Labels "com.docker.compose.project.working_dir" }}' "$CID")
+PREVIOUS_IMAGE=$(sudo -n docker inspect --format '{{.Image}}' "$CID")
+PREVIOUS_IMAGE_REF=$(sudo -n docker inspect --format '{{.Config.Image}}' "$CID")
+sudo -n test -f "$PREVIOUS_DEPLOY/app.env"
+sudo -n docker image tag "$PREVIOUS_IMAGE" "file-integrity-tv2:rollback-$RELEASE"
+sudo -n install -m 600 "$PREVIOUS_DEPLOY/app.env" "$NEW_ROOT/deploy/app.env"
+printf 'Previous deployment: %s\nNew deployment: %s\nPrevious image ref: %s\n' \
+  "$PREVIOUS_DEPLOY" "$NEW_ROOT/deploy" "$PREVIOUS_IMAGE_REF"
+```
+
+Ghi lại ba giá trị đường dẫn/image và release để rollback. Nếu không tìm được đúng một container app của project đích, xác định deployment thực tế trước khi tiếp tục; không chọn ngẫu nhiên container hoặc nhầm project của thành viên khác.
+
+**Triển khai lần đầu trên App VM mới:** bỏ nhóm lệnh tìm bản trước ở trên, thay bằng:
+
+```bash
+sudo -n install -m 600 "$NEW_ROOT/deploy/app.env.example" "$NEW_ROOT/deploy/app.env"
+sudo -n nano "$NEW_ROOT/deploy/app.env"
+```
+
+Điền các biến đúng theo [file mẫu](deploy/app.env.example): `DATABASE_URL` của PostgreSQL thật, `APP_API_KEY`, `OS_AUTH_URL`, `OS_APPLICATION_CREDENTIAL_ID`, `OS_APPLICATION_CREDENTIAL_SECRET`, `OS_REGION_NAME`, `OS_INTERFACE`, `SWIFT_CONTAINER` và `MAX_FILE_BYTES`. URL-encode ký tự đặc biệt trong tài khoản/mật khẩu của `DATABASE_URL`. File Compose luôn chọn `STORAGE_BACKEND=swift`. `CHANGE_ME` và các IP mẫu phải được thay bằng cấu hình thật; secret được nhập trên VM hoặc từ nguồn bí mật được cấp, không đưa vào chat/log/Git.
+
+App VM mới chưa có Docker/Compose cần được người quản lý hạ tầng chuẩn bị trước. Database mới phải có user/database chuyên dụng, thư mục dữ liệu PostgreSQL thực sự trên Cinder và rule cho phép App VM truy cập. Bước chạy app không tự tạo những tài nguyên đó.
+
+### 9.5 Build và chạy bản mới
+
+Tiếp tục trên App VM tại đúng release đã chuẩn bị:
+
+```bash
+cd "$NEW_ROOT/deploy"
+sudo -n docker compose --project-name file-integrity-cloud-app \
+  --env-file app.env -f compose.openstack.yaml config --quiet
+sudo -n docker compose --project-name file-integrity-cloud-app \
+  --env-file app.env -f compose.openstack.yaml up -d --build --wait --wait-timeout 180
+sudo -n docker compose --project-name file-integrity-cloud-app \
+  --env-file app.env -f compose.openstack.yaml ps
+```
+
+Giữ cùng project name khi cập nhật cùng deployment, tránh tạo project khác tranh cổng 8000. Trên VM mới độc lập có thể dùng project name này nếu chưa có deployment chiếm cổng. `config --quiet` chỉ kiểm tra cấu hình; không dùng `config` không có `--quiet`, `env`, hoặc inspect toàn bộ container để in secret ra log. Nếu cấu hình, build hoặc health check lỗi, dừng luồng và chẩn đoán trước bước tiếp theo.
+
+### 9.6 Kiểm chứng trước khi báo triển khai xong
+
+Trên App VM, tại thư mục deploy của release mới:
+
+```bash
+sudo -n docker compose --project-name file-integrity-cloud-app \
+  --env-file app.env -f compose.openstack.yaml exec -T app \
+  python -m pytest tests -q -p no:cacheprovider
+sudo -n docker compose --project-name file-integrity-cloud-app \
+  --env-file app.env -f compose.openstack.yaml exec -T app python tests/smoke_live.py
+curl -fsS http://127.0.0.1:8000/health/ready
+```
+
+Pytest phải đạt toàn bộ ca kiểm thử của commit đang triển khai (bản TV2 hiện có 17 ca). Smoke live tạo một tệp có tiền tố `smoke-`, kiểm tra UI assets, upload/list/download/verify qua API với DB và Swift thật; đây là bước kiểm thử có tạo dữ liệu demo. Readiness cần `status=ready`, `storage=swift`. Khi nâng cấp lab, verify thêm một tệp đã có từ trước để xác nhận bản mới vẫn đọc dữ liệu dùng chung.
+
+Sau đó mở tunnel từ máy thành viên và chạy `check-lab.ps1 -CheckApi` theo mục 3. Agent báo commit/release, App VM đích, thư mục release, kết quả từng kiểm tra, URL truy cập và cách rollback. Bằng chứng lịch sử trong `deploy/tv2/evidence/` chỉ tham khảo, không thay kết quả vừa triển khai. Với cụm khác, đối chiếu thêm data directory/mount PostgreSQL và attachment Cinder; readiness Swift không tự chứng minh DB nằm trên Cinder.
+
+Các lệnh rollout ở mục 9 là quy trình bàn giao; phiên biên soạn tài liệu chưa chạy một rollout mới trên lab hoặc cấp quyền cho thành viên. Agent nhận việc phải chạy và thu kết quả thực tế trên môi trường được giao.
+
+### 9.7 Rollback khi nâng cấp thất bại
+
+Nếu có bản trước và schema không đổi, dùng lại các giá trị đã ghi tại bước 9.4, trên App VM. Giữ nguyên database, Swift và Cinder:
+
+```bash
+# Gán lại RELEASE, PREVIOUS_DEPLOY và PREVIOUS_IMAGE_REF nếu đổi shell.
+sudo -n docker image tag "file-integrity-tv2:rollback-$RELEASE" "$PREVIOUS_IMAGE_REF"
+cd "$PREVIOUS_DEPLOY"
+sudo -n docker compose --project-name file-integrity-cloud-app \
+  --env-file app.env -f compose.openstack.yaml up -d --no-build --force-recreate --wait --wait-timeout 180
+curl -fsS http://127.0.0.1:8000/health/ready
+```
+
+Chạy lại kiểm tra API/verify sau rollback và báo rõ release chưa đạt. Không dùng `down -v`, xóa database/container Swift, format Cinder hoặc chạy lại cài đặt PostgreSQL để sửa deployment app. Nếu commit mới có migration schema thì cần quy trình migration/rollback tương ứng; không áp dụng rollback chỉ bằng image một cách máy móc.
