@@ -1,0 +1,13 @@
+[Unit]
+Description=TV1 VMware lab external gateway and scoped NAT
+Wants=network-online.target
+After=network-online.target openvswitch-switch.service
+Requires=openvswitch-switch.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/tv1-lab-network
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
