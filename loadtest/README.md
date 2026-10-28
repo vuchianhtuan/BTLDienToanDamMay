@@ -1,56 +1,66 @@
-# Kiểm thử tải phần TV3
+# Phần Locust của TV3
 
-Phụ trách: Đinh Kiều Công Tuấn. Workload gọi HTTP theo docs/API_CONTRACT.md, không sửa API hay schema. Không upload lặp trong lúc đo tải.
+Kịch bản kiểm tra list, verify và download với một tệp có sẵn. HTTP 200 chưa được coi là thành công nếu payload sai. Các request có timeout 15 giây và được gom tên cố định để báo cáo không phình theo UUID.
 
-## Chuẩn bị fixture
+## Chuẩn bị và chạy
 
-1. Chạy app bằng Docker Compose theo README ở thư mục gốc.
-2. Upload một tệp demo qua UI. Dùng tệp khoảng 1–10 MiB khi đo, ghi lại kích thước và SHA-256; tệp vài byte chỉ phù hợp smoke test.
-3. Mặc định mỗi user chọn tệp mới nhất khi khởi tạo. Đặt LOADTEST_FILE_ID thành UUID của cùng một tệp nếu cần kết quả có thể so sánh; không upload tệp mới trong lúc đo. UUID lấy từ JSON trả về của API upload/list.
-4. Khi bật API key, Locust đọc APP_API_KEY từ môi trường. Không ghi key vào lệnh, báo cáo hoặc Git. Compose đã truyền key của app vào container.
+Sau khi build app từ nhánh chứa phần Locust:
 
-## Chạy baseline local
+```powershell
+docker compose up --build -d --wait
+docker compose exec -T app python loadtest/prepare_fixture.py --size-mib 1
+docker compose exec -T app python -m locust -f loadtest/locustfile.py --headless -u 5 -r 1 -t 30s --host http://127.0.0.1:8000 --only-summary --exit-code-on-error 1
+```
 
-Chạy tại thư mục gốc repo, trong PowerShell:
+Lệnh prepare tạo đúng một tệp giả (mặc định 1 MiB), trả UUID/hash và không lặp upload trong workload. Mặc định Locust chọn tệp mới nhất ở thời điểm mỗi user bắt đầu; có thể đặt `LOADTEST_FILE_ID` bằng UUID đã chọn để mọi user dùng cùng một fixture. Khi có UUID, workload tìm qua các trang metadata. Ví dụ thêm `-e LOADTEST_FILE_ID=<UUID>` sau `docker compose exec -T`. Để so sánh công bằng, chuẩn bị fixture một lần, không upload thêm hoặc đổi nội dung trong lúc đo; ghi UUID/kích thước vào kết quả. `APP_API_KEY` được lấy từ môi trường container, không ghi vào code hoặc báo cáo.
 
-~~~powershell
-docker compose exec -T app locust -f loadtest/locustfile.py --headless -u 5 -r 1 -t 30s --host http://127.0.0.1:8000 --only-summary
-~~~
+## Kịch bản và tiêu chí
 
-Kịch bản gồm list:verify:download theo trọng số 3:1:1; mỗi user nghỉ ngẫu nhiên 1–3 giây giữa các task. Chuẩn bị fixture nằm trong thống kê riêng với tên fixture metadata. Thiếu fixture hoặc lỗi xác thực làm dừng user và ghi failure; không tiếp tục chạy chỉ list rồi báo toàn bộ workload thành công.
+- Metadata phải là mảng JSON có UUID, SHA-256 hợp lệ và size không âm. Không có fixture hoặc fixture hỏng/sai quyền thì dừng run với exit code 1.
+- Mỗi user kiểm tra verify và download fixture trước khi chạy workload ngẫu nhiên: list : verify : download có trọng số 3 : 1 : 1, thời gian nghỉ 1–3 giây.
+- Verify phải có `intact=true` đúng kiểu boolean, đúng ID, hai hash và hai size khớp metadata đã chọn.
+- Download phải có đúng số byte và SHA-256; nội dung bị sửa cùng kích thước vẫn là lỗi.
+- Khi đang đo, lỗi request vẫn được đếm để phản ánh tỷ lệ lỗi. Lỗi fixture ở bước khởi tạo khiến run dừng sớm, không tạo kết quả xanh không có workload.
 
-Verify HTTP 200 nhưng intact=false, hash/size không khớp vẫn là failure. Download được đọc theo chunk, đối chiếu SHA-256 và số byte; thời gian gồm nhận/kiểm tra toàn bộ nội dung. Vì client tính hash, cần theo dõi CPU của máy tạo tải để tránh nhầm nút thắt client với server.
+## Các mức tải gợi ý
 
-## Đo qua Octavia và xuất báo cáo
+| Profile | Users | Tăng users mỗi giây | Thời gian mặc định |
+|---|---:|---:|---:|
+| light | 5 | 1 | 30 giây |
+| medium | 10 | 2 | 30 giây |
+| higher | 20 | 2 | 30 giây |
 
-Chỉ chạy khi TV1 đã cung cấp endpoint và nhóm thống nhất phiên tạo tải. Ví dụ PowerShell dưới đây yêu cầu Python/Locust đã cài trên máy đo riêng:
+Đây là mức thử ban đầu trên máy lab, không phải tải tối đa hoặc ngưỡng autoscaling. Tăng từng mức sau khi kiểm tra RAM/CPU, độ trễ và tỷ lệ lỗi. File nhỏ và các tác vụ I/O có thể không làm CPU đủ cao để kích hoạt alarm; cần chốt metric/ngưỡng với TV1 theo số liệu thật.
 
-~~~powershell
-$fixtureId = Read-Host 'UUID tep demo'
-$targetUrl = Read-Host 'URL cua Octavia'
-$env:LOADTEST_FILE_ID = $fixtureId
-New-Item -ItemType Directory -Force test-results | Out-Null
-python -m locust -f loadtest/locustfile.py --headless -u 5 -r 1 -t 60s --host $targetUrl --only-summary --csv test-results/baseline --html test-results/baseline.html
-~~~
+Xuất báo cáo CSV/HTML bằng PowerShell:
 
-Nếu ứng dụng yêu cầu key, cấp APP_API_KEY cho tiến trình qua môi trường riêng trước khi chạy. Thử 5 users trước, sau đó tăng từng mức đã thống nhất; dừng khi lỗi tăng mạnh hoặc ảnh hưởng thành viên khác. CSV/HTML chứa tên và kết quả endpoint, lưu trong test-results đã được Git bỏ qua. Không đưa dữ liệu nhạy cảm vào fixture.
+```powershell
+./scripts/run-loadtest.ps1 -Profile light
+./scripts/run-loadtest.ps1 -Profile medium
+```
 
-Với Compose có thể cố định fixture bằng docker compose exec -T -e LOADTEST_FILE_ID=$fixtureId app locust ... và giữ các tham số workload như trên. Báo cáo tạo trong container cần được sao chép ra host trước khi tạo lại container.
+Script dùng fixture đã có; hãy chạy prepare trước. Báo cáo được copy về `test-results/locust/<profile>-<id>/` và không đưa vào Git tự động. Chỉ commit bản tóm tắt đã kiểm tra dữ liệu nhạy cảm vào `docs/evidence/`. Không chạy đồng thời các profile trên cùng máy nếu muốn so sánh từng mức.
 
-## Kiểm tra chính kịch bản tải
+Mỗi profile có `summary.json` chụp bộ đếm cuối khi Locust thoát. Dùng file này cho tổng requests/failures, đặc biệt khi lỗi fixture làm run kết thúc trước lần cập nhật CSV tiếp theo. CSV/HTML vẫn hữu ích để xem lịch sử và từng endpoint.
 
-~~~powershell
-docker compose exec -T app python tests/loadtest/smoke_workload.py
-~~~
+## Kiểm thử
 
-Hoặc dùng Python có dependency trong requirements.txt: python tests/loadtest/smoke_workload.py. Script tạo API subprocess, SQLite và storage tạm riêng, chạy các task qua HTTP thật rồi dọn môi trường. Các ca: tệp hợp lệ, download đủ byte, sửa nội dung cùng kích thước, mất object, UUID fixture không tồn tại và sai API key. Không dùng dữ liệu trong stack đang chạy.
+Chạy offline, không cần Docker hoặc Locust:
 
-## Bằng chứng cần ghi cho mỗi lượt đo
+```powershell
+python -m unittest discover -s tests/loadtest -v
+```
 
-- Commit, môi trường, storage/DB, endpoint app trực tiếp hay LB, số App VM.
-- UUID, dung lượng và SHA-256 fixture; users, spawn rate, thời gian chạy.
-- Request/failure, throughput, p50/p95/p99; CPU/RAM/network của app và máy tạo tải.
-- Khi thử autoscaling: metric/đơn vị/chu kỳ, ngưỡng, cooldown, min/max VM, alarm history, Heat events và Octavia pool member trước/sau.
-- Mốc thời gian tải tăng, alarm, VM tạo xong, member HEALTHY; sau giảm tải kiểm tra scale-in và dữ liệu còn đọc/verify được.
+Chạy toàn bộ pytest và Locust CLI integration khi app/PostgreSQL đã sẵn sàng:
 
-Bài tải local không chứng minh autoscaling. Không kết luận scale-out chỉ vì alarm đổi trạng thái; phải có VM thật và member mới nhận traffic.
+```powershell
+docker compose exec -T app python -m pytest tests -q -p no:cacheprovider
+docker compose exec -T app python tests/smoke_live.py
+docker compose exec -T app python tests/smoke_locust.py
+```
+
+Integration chạy Locust thật trên ứng dụng thật cho trường hợp khỏe, rồi dùng HTTP fixture có kiểm soát cho các trường hợp: không có tệp, 401, verify trả false dù HTTP 200 và download hỏng cùng kích thước. Mỗi ca lỗi phải có failure được ghi nhận và exit code 1; lỗi import hoặc run không tạo request không được tính là test đạt.
+
+## Giới hạn đo local
+
+Locust chạy trong cùng container với app ở cấu hình này, nên các con số chịu ảnh hưởng máy tạo tải và không đo đường truyền Tailscale/WAN. Download được đọc theo từng chunk để tính hash và đếm byte; latency gồm thời gian nhận/kiểm tra toàn bộ nội dung. Khi có cụm thật, chạy máy tạo tải riêng, dùng URL Octavia, cùng DB/Swift và thu metric/alarm/Heat cùng mốc thời gian. Thành công local không chứng minh autoscaling hoặc OpenStack đã hoạt động.

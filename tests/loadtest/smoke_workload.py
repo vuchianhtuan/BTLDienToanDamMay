@@ -63,7 +63,7 @@ def main():
                 user.listing()
                 user.verify()
                 user.download()
-                assert len(results) == 4 and all(r["exception"] is None for r in results), results
+                assert len(results) == 6 and all(r["exception"] is None for r in results), results
                 assert results[-1]["response_length"] == len(body)
                 # Same-size corruption must be a failure even with HTTP 200.
                 (data / "objects" / fixture["id"]).write_bytes(b"x" * len(body))
@@ -71,7 +71,7 @@ def main():
                 user.download()
                 assert all(r["exception"] is not None for r in results[-2:]), results[-2:]
                 assert "Integrity verification" in str(results[-2]["exception"])
-                assert "SHA-256/size" in str(results[-1]["exception"])
+                assert "Downloaded file SHA-256" in str(results[-1]["exception"])
                 (data / "objects" / fixture["id"]).unlink()
                 user.download()
                 assert results[-1]["exception"] is not None

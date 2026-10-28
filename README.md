@@ -115,6 +115,8 @@ Ba vùng làm việc đề xuất: hạ tầng/tích hợp ở `deploy/`; backen
 
 TV3 xem [hướng dẫn workload và báo cáo](loadtest/README.md), [tiến độ và các mốc tích hợp](docs/TV3_PROGRESS.md).
 
+Locust kiểm tra SHA-256/size khi download và nội dung verify, không chỉ HTTP 200. Fixture thiếu hoặc sai khiến run dừng với exit code 1. Có thể chạy riêng phần kiểm tra thuần Python bằng `python -m unittest discover -s tests/loadtest -v`.
+
 Upload ít nhất một tệp trước. Chạy Locust trên host của container app:
 
 ```powershell

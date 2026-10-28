@@ -45,6 +45,8 @@ jobs:
         run: docker compose exec -T app python tests/smoke_live.py
       - name: Load workload integrity scenarios with an isolated API
         run: docker compose exec -T app python tests/loadtest/smoke_workload.py
+      - name: Locust CLI success and semantic failure checks
+        run: docker compose exec -T app python tests/smoke_locust.py
       - name: Service logs
         if: always()
         run: docker compose logs --no-color --tail 100
