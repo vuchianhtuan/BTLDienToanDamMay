@@ -1,151 +1,109 @@
-# TV3 - Octavia, Heat, Aodh va minh chung
+# Bộ chuẩn bị hạ tầng TV3
 
-Phu trach: Dinh Kieu Cong Tuan (23020875). Day la bo cau hinh chuan bi de tich hop, **chua duoc deploy/xac minh tren cum OpenStack that**. Khong chay lai DevStack lab cu de bat dich vu khi chua thong nhat voi TV1. TV1 chu tri Controller/Compute/network; TV2 cung cap app image va Swift/PostgreSQL dung chung; TV3 so huu LB, elasticity va kiem thu.
+Đây là **luồng JSON đang dùng cho bàn giao cập nhật TV3**: `kit.py`, `*.json`, `probe_http.py`. Bộ YAML có trước vẫn được giữ tại `templates/*.yaml`, `validate.py`, `cloud_check.py`, `probe.py`; xem [YAML_RUNBOOK.md](YAML_RUNBOOK.md) khi cần tái lập bài thử cũ. Hai bộ có topology/budget và tham số khác nhau; không trộn file environment hoặc cùng quản lý một tài nguyên bằng cả hai bộ. Chưa có luồng nào được chứng minh trên cloud thật.
 
-## 1. Dau vao can nhan, khong can doi toan bo du an hoan tat
+**Trạng thái: đã kiểm thử offline, chưa triển khai/validate bằng Heat API trên OpenStack thật.** Có thể tự đọc, sửa template, chạy kiểm thử và chuẩn bị demo ngay trên máy cá nhân. Không cần tài khoản cloud cho `lint`, `plan`, `build` hoặc các unit test. Ba template dùng JSON HOT để công cụ kiểm tra chỉ cần Python 3.12+ và thư viện chuẩn.
 
-| Nguoi | Dau vao can chot |
+| Tệp | Vai trò |
 |---|---|
-| TV1 | Ban OpenStack/DevStack/plugin; scope project va CLI co quyen; 2 AZ khac nhau; image/flavor/keypair; private network/subnet; security group; quota cho toi da 3 App VM va Octavia provider. |
-| TV1 | Octavia provider ho tro HTTP, ROUND_ROBIN va HTTP health monitor (mau dung amphora); Heat + Aodh + Gnocchi; Aodh trust notifier den Heat; Ceilometer tren cac compute. OVN networking khong dong nghia Octavia provider OVN ho tro cac tinh nang HTTP nay. |
-| TV1 + TV3 | Cach may tao tai di toi private VIP, duong den backend, MTU; metric/aggregation/granularity, resource attribute server_group, chu ky lay mau; du RAM cho App VM va amphora. |
-| TV2 | Hai App VM test hoac prebuilt app image; tat ca dung cung PostgreSQL + Swift; /health/ready tra 200; thong tin secret cap rieng. Khong dung storage local tren nhieu app. |
+| `baseline-lb.json` | Tạo LB private, listener HTTP:80 giới hạn CIDR, pool round-robin, monitor `/health/ready`, hai member App:8000 đã tồn tại |
+| `app-member.json` | VM ở một AZ + khởi động container + đăng ký member; nested stack quản lý vòng đời cả hai |
+| `autoscale.json` | Một LB **riêng**, hai nhóm gắn hai AZ, mỗi nhóm tối thiểu 1 VM, tối đa 2; policy tăng/giảm 1 VM và 4 alarm tùy chọn |
+| `kit.py` | Kiểm tra offline, tính ngưỡng/budget, tạo environment; khám phá/thu snapshot cloud chỉ đọc |
 
-Chi mo cong 8000 cua App VM tu duong traffic/health monitor Octavia da xac minh. Khong mac dinh mo ca subnet hay Internet. App VM khong co floating IP. VIP private cung chua tu truy cap duoc qua Tailscale: TV1 phai cap routing/jump host phu hop. HTTP trong mau chi danh cho mang lab/VPN; public access can TLS rieng.
+## Tự làm ngay
 
-## 2. Kiem tra offline truoc (khong can OpenStack)
-
-Tu thu muc goc repo, voi Python co dependencies ung dung:
+Từ thư mục gốc repo:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install -r deploy/elasticity/requirements-check.txt
-.\.venv\Scripts\python.exe deploy/elasticity/validate.py
-.\.venv\Scripts\python.exe -m unittest discover -s deploy/elasticity/tests -v
+python -m unittest discover -s tests/elasticity -v
+python deploy/elasticity/kit.py lint
+New-Item -ItemType Directory -Force deploy/elasticity/local
+Copy-Item deploy/elasticity/config.example.json deploy/elasticity/local/config.json
+Copy-Item deploy/elasticity/app.env.example deploy/elasticity/local/app.env
 ```
 
-Validator bat YAML trung key, tham chieu sai, nested interface sai va gia tri moi truong nguy hiem/de trong. Day KHONG phai Heat schema validation, khong xac nhan provider/metric/network/cloud-init that.
+Linux dùng `mkdir -p`, `cp` tương ứng. File mẫu cố ý chứa `CHANGE_ME`: lệnh `plan/build` phải từ chối khi chưa điền thông tin. Không thay placeholder bằng UUID ngẫu nhiên rồi coi là đã sẵn sàng triển khai.
 
-## 3. Kiem tra cum chi doc
+Sau khi có thông tin thật, điền `local/config.json`: UUID subnet/network/image/SG, flavor, keypair, hai AZ khác nhau, hai IP App hiện tại, CIDR của máy demo/VPN đã có route tới VIP. Bộ này dùng IPv4. `vcpus`, `ram_mb` phải khớp flavor. `budget_app_vms` chỉ giới hạn **VM mới của stack autoscale**, chưa gồm App VM cũ, PostgreSQL, amphora Octavia và dịch vụ OpenStack. Mặc định tính 4 VM App mới, không khẳng định các laptop đủ RAM. Có thể đặt `max_per_zone=1` và budget=2 để thử boot/LB trước; khi đó chưa có dư địa scale-out.
 
-Tren terminal co OpenStack CLI va cac plugin Heat/Octavia/Aodh/Gnocchi da duoc TV1 cai theo phien ban cum, nap openrc/clouds.yaml rieng cua nhom. Khong commit file nay.
-
-Tu `deploy/elasticity`:
-
-```bash
-python3 cloud_check.py preflight --output evidence/preflight-01.json
-openstack loadbalancer provider list
-openstack availability zone list --compute
+```powershell
+python deploy/elasticity/kit.py plan --config deploy/elasticity/local/config.json --out deploy/elasticity/local/plan.json
+python deploy/elasticity/kit.py build --config deploy/elasticity/local/config.json --app-env deploy/elasticity/local/app.env --out deploy/elasticity/local/run-01
 ```
 
-Tool chi goi lenh list/show, co timeout va bao INCOMPLETE neu lenh thieu/quyen thieu/dich vu loi. `compute service list` co the can admin; nho TV1 chay phan nay, khong cap admin chi de vuot preflight. QUERIES OK chi chung minh truy van duoc, can doc ket qua va xac nhan co 2 AZ va du tai nguyen. Preflight yeu cau ca Aodh, nen co the INCOMPLETE nhung van thu LB khi TV1 da kiem tra rieng Octavia/Heat hoat dong.
+`build` tạo hai Heat environment và bản tính dung lượng. Output phải mới để tránh ghi đè nhầm. Công cụ luôn đặt `enable_alarms=false`. Mọi file trong `local/`, `app.env`, `*.env.json` đều bị Git bỏ qua; thư mục bí mật cũng bị loại khỏi Docker build context. Trên Linux, file environment bí mật được tạo mode `0600`; Windows cần giới hạn ACL của thư mục, không để ở thư mục chia sẻ. Base64 và Heat `hidden` **không mã hóa bí mật**: người có quyền đọc Heat state, Nova user-data hoặc VM vẫn có thể đọc. Dùng credential riêng phạm vi project lab; không chụp/publish environment, user-data hoặc action URL. Khi cập nhật credential/image, chuẩn bị thay VM có kiểm soát; cloud-init không tự chạy lại trên VM cũ.
 
-## 4. Giai doan 1: LB voi 2 App VM co san
+## Điều kiện image trước khi tạo VM
 
-1. TV2 chuan bi hai App VM co private IP KHAC NHAU tren cung subnet chi dinh; cung DB/Swift, khac AZ; kiem tra truc tiep tu duong mang Octavia. UI/verify/download phai hoat dong truoc khi them LB.
-2. Tao `private/`, copy `lb.env.example.yaml` thanh `private/lb.env.yaml`, dien subnet UUID va 2 IP that. Thu muc `private/` va `evidence/` duoc Git bo qua. Tren Linux: `chmod 700 private` va `chmod 600 private/*` sau khi tao file.
-3. Kiem tra va tao stack RIENG (lenh create co tao tai nguyen/tieu quota; chi chay trong phien tich hop da thong nhat):
+TV3 có thể tự build container và chuẩn bị quy trình image; bản Glance và mạng thật cần dữ liệu TV1/TV2 sau này:
 
-```bash
-python3 validate.py --kind lb --environment private/lb.env.yaml
-openstack orchestration template validate -t templates/lb-existing.yaml -e private/lb.env.yaml
-openstack stack create tv3-lb -t templates/lb-existing.yaml -e private/lb.env.yaml --wait
-openstack stack output show tv3-lb loadbalancer_id -f value -c output_value
-openstack stack output show tv3-lb pool_id -f value -c output_value
-openstack stack output show tv3-lb vip_address -f value -c output_value
+1. Image Ubuntu có cloud-init và Docker engine hoạt động. Build app từ **commit cụ thể**, ghi SHA vào minh chứng, đặt tag `file-integrity:<commit>`. Export bằng `docker save`, import bằng `docker load` trên VM dùng tạo image. Repo hiện không publish registry.
+2. Image phải chứa đúng tag này. Boot script dùng `--pull never`, không chạy `apt`, `git clone` hay build qua Internet lúc scale. Docker daemon phải hỗ trợ tùy chọn này. Kiểm tra `docker image inspect <tag>` trên VM chuẩn bị.
+3. Trước khi tạo image, không để container cũ tự khởi động, không lưu `app.env`/credential hoặc dữ liệu người dùng trong image. Làm sạch cloud-init theo hướng dẫn Ubuntu/image của nhóm để clone nhận user-data mới; kiểm tra metadata/config-drive hoạt động. Đặt Glance image private.
+4. Khi boot, cloud-init tạo `/etc/file-integrity/app.env` mode 0600, bật Docker, chạy container và publish 8000. Mọi App VM dùng cùng Swift/container và PostgreSQL; không mount volume local để giả shared storage. Cloud-init lỗi thì sửa image/env và thay VM; `CREATE_COMPLETE` của Heat không tự chứng minh ứng dụng sẵn sàng.
+5. SG App phải cho Octavia đến 8000 và đường SSH quản trị cần thiết, có egress đến DB/Keystone/Swift/DNS; DB chỉ nhận kết nối được phép. Template dùng SG **đã có**, không sửa SG/network/controller và không tạo floating IP. HTTP chỉ dành cho lab private; môi trường ngoài lab cần TLS riêng.
+
+## Khám phá và validate cloud — chỉ đọc
+
+Chạy trên máy đã cài OpenStackClient cùng plugin Heat, Octavia, Gnocchi, Aodh tương thích bản cloud; nạp credential riêng bằng cơ chế của nhóm. Không đưa token/clouds.yaml/openrc vào repo. Trên Windows hiện tại chưa có OpenStackClient; các bước này chưa được thực thi trên cloud.
+
+```sh
+python deploy/elasticity/kit.py probe --config deploy/elasticity/local/config.json --out deploy/elasticity/local/discovery.json
+openstack orchestration template validate -t deploy/elasticity/baseline-lb.json -e deploy/elasticity/local/run-01/baseline.env.json
+openstack orchestration template validate --show-nested -t deploy/elasticity/autoscale.json -e deploy/elasticity/local/run-01/autoscale.env.json
 ```
 
-Ghi LB_ID, POOL_ID, VIP vao bien shell rieng. Doi provisioning ACTIVE va ca 2 member ONLINE. Neu member ERROR/OFFLINE, kiem tra app, security group, routing, port va provider; khong bo health monitor de che loi. HTTP monitor kiem tra `/health/ready`, co the lam ca 2 backend OFFLINE khi DB/Swift chung hong: day la dependency that.
+`probe` chỉ tìm service, AZ, image/flavor/network/SG/keypair và loại resource. Nó không kiểm tra route, quota, đủ RAM, boot thành công, metric hay webhook. `FOUND` không đồng nghĩa sẵn sàng triển khai. Các lỗi CLI/credential/plugin được ghi `NOT AVAILABLE`; không in stdout/stderr cloud nguyên bản vì có thể chứa bí mật. Muốn chẩn đoán sâu, người vận hành xem riêng trên máy có quyền.
 
-4. Upload 1 fixture 1-10 MiB qua VIP, luu UUID, size va SHA-256 goc. Kiem tra download/verify qua VIP va tu tung backend trong mang private. Hai member ONLINE chua chung minh ca hai nhan request: doi chieu access log cua hai App VM khi goi qua VIP (connection moi); ung dung hien chua tra backend identity header.
-5. Chay workload nho theo `../../loadtest/README.md`, va probe ben duoi. TV2 dung **container app cua mot backend** trong phien test da hen; khong dung database/Swift/Controller va khong xoa VM. Ghi thoi diem UTC dung/khoi phuc, member ONLINE -> OFFLINE -> ONLINE, log backend va ket qua probe. Doi health monitor hoi tu truoc khi danh gia. Request dang xu ly co the loi trong luc chuyen; giu nguyen CSV, bao cao so loi/thoi gian phuc hoi, khong sua du lieu de ghi zero downtime.
+Lệnh validate hỏi Heat API thật, khác với `lint` offline. Có thể chưa kiểm tra đủ nested property/custom constraint; vẫn cần boot thử. Kiểm tra schema của bản cloud bằng `openstack orchestration resource type show <TYPE>`. Listener cần hỗ trợ `allowed_cidrs`; nếu cloud cũ thiếu, bổ sung kiểm soát mạng tương đương đã thống nhất trước khi sửa template.
 
-```bash
-# APP_API_KEY cap qua moi truong rieng, khong dua key vao CLI/history.
-python3 probe.py --host http://VIP --file-id FIXTURE_UUID --sha256 ORIGINAL_SHA256 --size ORIGINAL_BYTES --seconds 120 --output evidence/failover-01.csv
+## Chạy từng giai đoạn khi hạ tầng đã sẵn sàng
+
+Các lệnh dưới đây **tạo/thay đổi tài nguyên**, chỉ là hướng dẫn để người vận hành chạy sau khi chốt budget và cửa sổ thử nghiệm; lần chuẩn bị này không thực thi chúng.
+
+```sh
+# Bước 1 tùy chọn: LB trước hai App VM có sẵn. Không tạo VM mới.
+openstack stack create tv3-baseline -t deploy/elasticity/baseline-lb.json -e deploy/elasticity/local/run-01/baseline.env.json --wait
+# Bước 2: stack autoscale với LB riêng, alarm vẫn tắt.
+openstack stack create tv3-elastic -t deploy/elasticity/autoscale.json -e deploy/elasticity/local/run-01/autoscale.env.json --wait
+openstack stack output list tv3-elastic
 ```
 
-Probe chi goi readiness, verify va streamed download cua tep co san; khong upload, khong dung backend. `roundtrip_ms` la tong 3 thao tac, khong phai latency mot endpoint. Code 1 neu co bat ky loi nao; 0 neu moi lan deu dat. Probe khong chung minh can bang tai: phai ket hop log cua tung backend va Octavia status. Dung TCP/HTTP moi request trong Locust de tranh suy dien tu 1 ket noi giu lau.
+Không thêm hai App cũ vào pool autoscale: group phải tự quản lý member mới. Hai stack chạy đồng thời sẽ cộng thêm tài nguyên LB/amphora và vẫn giữ App cũ; tính cả phần đó trong dung lượng tổng. Không tự xóa tài nguyên của TV1/TV2. VIP private cần route/VPN đã kiểm tra; template không cấu hình Tailscale, NAT hay public ingress.
 
-6. Chup snapshot truoc/sau, bang ID THAT, file moi cho moi moc:
+Sau khi tạo: xác nhận VM ở đúng AZ, không có floating IP, cloud-init hoàn tất, hai member `ONLINE`, upload/verify/download qua VIP và kiểm tra dữ liệu dùng chung. Xem `cloud-init status --long`, `docker ps`, log container trên App VM trong phiên riêng; không đưa user-data/env vào ảnh minh chứng. Chỉ sang alarm khi các bước này đạt.
 
-```bash
-python3 cloud_check.py snapshot --stack tv3-lb --loadbalancer LB_ID --pool POOL_ID --output evidence/lb-before.json
-python3 cloud_check.py snapshot --stack tv3-lb --loadbalancer LB_ID --pool POOL_ID --output evidence/lb-after.json
+## CPU và alarm
+
+Mẫu dùng metric `cpu` tích lũy nanosecond với `rate:mean`. Ngưỡng theo tỷ lệ tổng CPU flavor:
+
+`threshold = percent / 100 × số vCPU mỗi VM × 1.000.000.000 ns/s`.
+
+Ví dụ 2 vCPU, 70% → 1.400.000.000 ns/s. Không điền `70` vào ngưỡng này. `kit.py` tự tính từ config. Mỗi AZ có dimension riêng `metering.server_group=<stack-id>-az1/az2`; query loại resource đã kết thúc để tránh VM bị xóa làm lệch mẫu. Phải xác minh Ceilometer thực sự xuất `user_metadata.server_group` thành thuộc tính Gnocchi `server_group`.
+
+Kiểm tra thực tế trước: `openstack metric resource show --type instance <VM_UUID>`, `openstack metric show --resource-id <VM_UUID> cpu`, rồi `openstack metric measures show --aggregation rate:mean --granularity 300 --resource-id <VM_UUID> cpu`. Xem archive policy của metric, có `rate:mean` và đúng granularity; collection pipeline có dữ liệu mới cho **cả hai VM**. Các plugin khác phiên bản có thể cần cú pháp khác, xem `--help`. Không tự hạ granularity trong template khi archive policy chưa hỗ trợ.
+
+Mặc định 300 giây × 2 periods, cooldown 600 giây: cần chờ metric và thời gian boot; chạy Locust 20 giây không đủ chứng minh scale. `insufficient data` là thiếu mẫu, không được coi là CPU thấp. Alarm không có action cho trạng thái này. CPU ứng dụng nhẹ hoặc nghẽn DB có thể không đạt 70% dù tăng người dùng; không sửa kết quả để tuyên bố đã scale.
+
+Khi metric, capacity và Heat signal đã xác minh: sao chép `autoscale.env.json` thành một file local mới, chỉ đổi `enable_alarms` thành `true`, validate lại, rồi người vận hành dùng `openstack stack update tv3-elastic -t ... -e <file mới> --wait`. Dùng đủ environment và giữ nguyên image/env/AZ; review thay đổi trước khi update. Kiểm tra cả đường tăng và giảm, không xuống dưới 1 VM mỗi AZ. Không gọi signal thủ công rồi ghi thành Aodh tự kích hoạt. Khi cần ngừng thử, tắt alarm bằng environment mới trước; giữ chứng cứ trước khi xóa stack do mình tạo.
+
+## Thu minh chứng
+
+Lấy UUID stack/LB/pool từ cloud; dùng ID thật để tránh nhầm tên. Chạy mỗi lần với output mới:
+
+```sh
+python deploy/elasticity/kit.py collect --stack STACK_UUID --lb LB_UUID --pool POOL_UUID --out test-results/elasticity/before.json
+# Sau scale-out, sau scale-in: gọi lại với after-out.json, after-in.json.
 ```
 
-Khong commit evidence chua review: co IP/project/resource ID va co the co error cua dich vu. Tool khong dump token, user-data, signal URL hoac stack parameters.
+Snapshot chỉ giữ các cột trạng thái/ID/địa chỉ và timestamp UTC. Không lấy parameters, action URL hay nội dung lỗi nguyên bản. Cần bổ sung bằng tay ảnh metric, Aodh history, mapping VM→AZ, log Locust và HTTP health: snapshot riêng lẻ không chứng minh quan hệ nhân quả. Xem [kịch bản và bảng thu chứng cứ](../../docs/TV3_DEMO.md).
 
-## 5. Giai doan 2: Image/bootstrap + autoscaling
+## Tài liệu nguồn
 
-Tao stack `tv3-elastic` RIENG; khong update `tv3-lb` sang template autoscaling. Hai stack tao LB rieng, va stack autoscaling tao App VM moi, nen can du quota/RAM khi cung ton tai. Thong nhat viec don stack test truoc neu thieu tai nguyen.
+Đối chiếu ngày 28/10/2026; `latest` không thay thế việc xác minh bản cloud của nhóm:
 
-### Hop dong app image voi TV2
-
-- Image Ubuntu co cloud-init, Docker va Docker Compose; repo o `/opt/file-integrity`, dung commit da review, container image cua `deploy/compose.openstack.yaml` da build (`file-integrity-cloud-app-app` voi Compose mac dinh nay). Thu lenh `up --no-build` tren VM mau truoc khi chup image. Khong git clone/cai package/build container khi autoscale.
-- Image KHONG chua `.env`, credential, DB/upload local, SSH private key hay cloud-init cache cua VM mau. TV2 chuan bi golden image va reset cloud-init/machine identity theo quy trinh image, khong dung image chua secret.
-- Copy `bootstrap.example.yaml` thanh `private/bootstrap.yaml`, dien endpoint/credential rieng, cung Swift/DB/key tren moi App VM. Ma hoa URL database neu mat khau co ky tu dac biet. Khong dua secret vao command history, log/screenshots hoac Git.
-- `hidden: true` chi an parameter trong output thong thuong, KHONG la secret vault: cloud-init/user-data/config-drive va admin Heat/Nova co the doc. Mau nay dung credential scope rieng cho lab. Neu nhom co secret manager, thay bootstrap bang lay secret luc boot.
-- Thu boot mot App VM bang image/bootstrap nay va `cloud-init status --wait`; can log cloud-init hoan tat, container ready, Swift/DB dung chung that. `CREATE_COMPLETE` cua Heat KHONG doi app ready; member chi ONLINE khi health monitor dat.
-
-### Chot metric truoc khi bat alarm
-
-Mau su dung Gnocchi `instance`, filter `server_group` bang stack UUID, voi metadata `metering.server_group` tren TAT CA app VM. TV1 phai xac nhan Ceilometer/Gnocchi map metadata nay sang resource attribute; khong tu gia dinh co san.
-
-```bash
-openstack metric resource show --type instance APP_VM_UUID
-openstack metric measures show CPU_METRIC_UUID --aggregation rate:mean --granularity 60
-```
-
-Kiem tra resource thuoc dung project/group va co nhieu sample moi lien tuc, archive policy co aggregation/granularity da chon. Neu khong co metric hoac stale: dung o day, khong ep alarm state de gia lap autoscaling.
-
-Ceilometer `cpu` la cumulative **nanoseconds**, KHONG phai %. `rate:mean` la ns CPU/giay. Voi N vCPU cung flavor, moc P% la `(P/100) * N * 1e9`; so trong env mau chi minh hoa cho 1 vCPU. Khong mac dinh co `cpu_util`. Chon metric/workload theo do thuc, va ghi don vi vao bao cao. Workload verify/download co the bi gioi han DB/Swift/client, chua chac tang CPU App VM; khi do khong duoc tu ket luan autoscale hong hay tao alarm gia.
-
-### Tao va bat autoscaling
-
-Copy `autoscaling.env.example.yaml` thanh `private/autoscaling.env.yaml`, dien ID/AZ that, az_a KHAC az_b; thiet lap threshold_low < threshold_high, granularity co that va cooldown lon hon thoi gian boot + health convergence da do. Alarms mac dinh false. Bo chi tao toi da **3 app**: 1 baseline AZ-1 va 1-2 app trong ASG AZ-2. Scale-in chi giam AZ-2 ve 1, nen van co 2 AZ; day khong phai scale ca Compute host. LB amphora co quota/RAM rieng.
-
-```bash
-python3 validate.py --kind autoscaling --environment private/autoscaling.env.yaml --bootstrap private/bootstrap.yaml
-openstack orchestration template validate -t templates/autoscaling.yaml -e private/autoscaling.env.yaml --parameter bootstrap_user_data=VALIDATION_ONLY
-openstack stack create tv3-elastic -t templates/autoscaling.yaml -e private/autoscaling.env.yaml --parameter-file bootstrap_user_data=private/bootstrap.yaml --wait
-```
-
-`VALIDATION_ONLY` chi dung lenh validate, khong dung de create VM. Doi ca 2 backend ONLINE, kiem tra shared data, 2 AZ va metering group/sample moi. Chup snapshot baseline va lay output high_alarm_id/low_alarm_id. Sau khi nhom chot metric, bat alarm:
-
-```bash
-openstack stack update tv3-elastic --existing --parameter alarms_enabled=true --wait
-```
-
-Khong can xuat signal URL ra output; Aodh su dung `trust+` Heat signal URL trong template. TV1 phai cau hinh trusts/notifier/endpoint access theo phien ban cum. Neu cloud dung telemetry khac (Prometheus, khong Gnocchi), can doi alarm resource va query, khong chay nguyen mau nay.
-
-## 6. Thu scale-out/scale-in va thu bang chung
-
-1. Tao fixture qua VIP cua `tv3-elastic`; luu UUID/size/SHA-256. Chay probe va Locust tu may tao tai rieng, key qua environment; 5 users truoc, tang tung muc da hen voi nhom, theo doi CPU/RAM/network cua ca client va app.
-2. Ghi UTC tai tang -> sample vuot nguong du evaluation periods -> Aodh ALARM -> Heat event tao app -> Nova ACTIVE -> cloud-init xong -> member ONLINE -> backend moi nhan request. Phai thay server ID moi va member moi, khong chi alarm doi state.
-3. Lay history va snapshot co --high-alarm/--low-alarm, CSV/HTML Locust. So sanh truoc/tai dinh/sau; ghi p50/p95/p99, throughput, failures, fixture, commit, flavor/vCPU, aggregation/units/granularity, nguong va cooldown.
-4. Giam/dung Locust. Doi sample thap du periods va cooldown, xac nhan AZ-2 ve 1 app/member, AZ-1 van con. Verify/download fixture cu qua VIP, chung minh data khong nam tren App VM bi xoa.
-5. Snapshot can ID LB/pool cua stack MOI, khong dung lai stack LB phase 1:
-
-```bash
-python3 cloud_check.py snapshot --stack tv3-elastic --loadbalancer LB_ID --pool POOL_ID --high-alarm HIGH_ALARM_ID --low-alarm LOW_ALARM_ID --output evidence/scale-peak.json
-```
-
-Tool chi chup tai mot thoi diem, khong tu poll va khong tu tao load; lap lai voi ten file khac o tung moc. Khong ghi de bang chung.
-
-## 7. Dung phien / xu ly loi
-
-- Neu dang scale loi: dung Locust, tat ca hai alarm bang stack update --existing --parameter alarms_enabled=false; thu snapshot/error events, thong bao TV1. Khong thay metric/nguong ngam khi dang quay demo.
-- Thu scale bang `openstack stack resource signal` chi la test plumbing co chu dich; neu dung, ghi ro manual signal, KHONG tinh la metric-driven scale. Khong co lenh signal tu dong trong bo nay.
-- Khi can don tai nguyen, nhom kiem tra dung stack ID va thong nhat truoc khi chay `openstack stack delete --wait STACK_NAME`. Xoa stack autoscaling se XOA App VM/ports/members/LB thuoc stack, nhung khong xoa DB/Swift ngoai stack. Xoa stack LB phase 1 chi xoa LB/members do stack tao, khong xoa App VM co san. Khong xoa Controller, volume/database hay stack nguoi khac.
-- Luu ban report da che secret theo `EVIDENCE.md`; khong tu dong upload evidence.
-
-## Tai lieu chinh thuc dung de chuan bi
-
-- [Heat resource schemas](https://docs.openstack.org/heat/latest/template_guide/openstack.html): Nova/Neutron, Octavia, ASG/ScalingPolicy, Aodh Gnocchi alarm. Can doi chieu lai ban dang cai.
-- [Octavia cookbook](https://docs.openstack.org/octavia/latest/user/guides/basic-cookbook.html): HTTP pool/monitor va duong mang backend.
-- [Ceilometer measurements](https://docs.openstack.org/ceilometer/latest/admin/telemetry-measurements.html): cpu cumulative ns va metadata metering.
-- [Heat client stack commands](https://docs.openstack.org/python-heatclient/latest/cli/stack.html): parameter-file, create/update --existing.
-
-## Trang thai kiem chung
-
-Chi ghi ket qua that vao `docs/TV3_PROGRESS.md`. Offline tests khong chung minh Heat service chap nhan schema, plugin co san, app image boot duoc, hay scale that. Chua co endpoint/credential cum nhom trong repo; chua deploy tai nguyen cloud trong dot nay.
+- [Heat resource schemas](https://docs.openstack.org/heat/latest/template_guide/openstack.html) và [nested template composition](https://docs.openstack.org/heat/latest/template_guide/composition.html).
+- [Ceilometer measurements và metering metadata](https://docs.openstack.org/ceilometer/latest/admin/telemetry-measurements.html), [Gnocchi mapping/archive policy trong mã Ceilometer](https://github.com/openstack/ceilometer/blob/master/ceilometer/publisher/data/gnocchi_resources.yaml).
+- [Aodh alarm states/evaluation](https://docs.openstack.org/aodh/latest/admin/telemetry-alarms.html).
+- [Red Hat CPU rate autoscaling example](https://docs.redhat.com/en/documentation/red_hat_openstack_platform/16.0/pdf/auto_scaling_for_instances/Red_Hat_OpenStack_Platform-16.0-Auto_Scaling_for_Instances-en-US.pdf).

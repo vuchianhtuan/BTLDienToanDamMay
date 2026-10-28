@@ -41,6 +41,8 @@ jobs:
           docker compose up --build -d --wait --wait-timeout 180
       - name: Unit and adapter contract tests
         run: docker compose exec -T app python -m pytest tests -q -p no:cacheprovider
+      - name: Offline Heat references and safety invariants
+        run: docker compose exec -T app python deploy/elasticity/kit.py lint
       - name: Live PostgreSQL API and frontend smoke test
         run: docker compose exec -T app python tests/smoke_live.py
       - name: Load workload integrity scenarios with an isolated API
