@@ -18,6 +18,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Frontend HTTP and clipboard tests
+        run: node --test tests/frontend/*.test.cjs
       - name: Build and start isolated local stack
         run: |
           cp .env.example .env

@@ -11,7 +11,7 @@ with httpx.Client(base_url=url, headers={"X-API-Key": key}, timeout=30) as clien
     assert client.get("/health/ready").status_code == 200
     page = client.get("/")
     assert page.status_code == 200 and '/assets/app.js' in page.text
-    for asset in ("app.js", "styles.css"):
+    for asset in ("api-client.js", "app.js", "styles.css"):
         assert client.get("/assets/" + asset).status_code == 200
     result = client.post("/api/files", params={"filename": "smoke-" + str(uuid4())[:8] + ".txt"}, content=payload)
     assert result.status_code == 201, result.text

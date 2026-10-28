@@ -71,6 +71,34 @@
           </div>
         </section>
       </div>
+      <section
+        id="verification"
+        class="panel verification"
+        aria-live="polite"
+        hidden
+      >
+        <h2 id="verificationTitle">Kết quả xác minh</h2>
+        <p id="verificationFile"></p>
+        <div class="hash-result">
+          <div>
+            <span class="small">SHA-256 gốc</span
+            ><code id="expectedHash"></code>
+          </div>
+          <button id="copyExpected" type="button" class="secondary">
+            Sao chép hash gốc
+          </button>
+        </div>
+        <div class="hash-result">
+          <div>
+            <span class="small">SHA-256 hiện tại</span
+            ><code id="actualHash"></code>
+          </div>
+          <button id="copyActual" type="button" class="secondary">
+            Sao chép hash hiện tại
+          </button>
+        </div>
+        <p id="verificationSize" class="small"></p>
+      </section>
       <section class="panel">
         <div class="sectionhead">
           <h2>Kho tệp</h2>
@@ -100,6 +128,7 @@
         metadata; hệ thống chưa có chữ ký số hoặc database chống sửa đổi.
       </p>
     </main>
+    <script src="/assets/api-client.js" defer></script>
     <script src="/assets/app.js" defer></script>
   </body>
 </html>
