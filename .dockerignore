@@ -1,6 +1,7 @@
 .git
 .env
 deploy/app.env
+deploy/tv2/lab-access.json
 .venv
 __pycache__
 .pytest_cache

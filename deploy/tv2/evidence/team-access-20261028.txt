@@ -1,0 +1,23 @@
+Team access handoff verification on 2026-10-28 (UTC+7).
+PowerShell on Windows; shared Swift/PostgreSQL OpenStack lab.
+Connection settings and credentials were supplied outside the repository.
+
+PASS: PowerShell parser accepts connect-lab.ps1 and check-lab.ps1.
+PASS: JSON configuration sets destination and binds forwarding to loopback.
+PASS: command-line host/port overrides take precedence over JSON settings.
+PASS: relative SSH key path containing spaces resolves against config directory.
+PASS: real SSH connection accepts a known_hosts path containing spaces.
+PASS: unconfigured example hostname is rejected.
+PASS: API check rejects non-local URLs before sending any credential.
+PASS: real SSH tunnel on separate local port 18081 opens the private App VM.
+PASS: readiness (Swift), frontend and static assets.
+PASS: authenticated API and SHA-256 verification of one existing file.
+PASS: duplicate tunnel rejects busy port.
+PASS: test tunnel closes after Ctrl+C; test port is released.
+
+No file uploaded, object modified, service stopped, VM rebooted or code
+deployed during this check. Only the temporary test tunnel on port 18081
+was created and closed; no persistent tunnel on port 18000 was required.
+Other members still need their own SSH authorization, API key and reachable
+lab endpoint. This check used the operator's authorized key; provisioning
+another member's public key is an administrator setup step, not performed here.

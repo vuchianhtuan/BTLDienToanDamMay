@@ -33,35 +33,86 @@ Swift và Cinder đang dùng chung ổ EBS vật lý của EC2. Hai dịch vụ 
 
 ## 1 Mở giao diện từ Windows
 
-Mở PowerShell:
+Thành viên đã merge code có thể tự mở ứng dụng đang chạy trên lab, không cần Docker hoặc các file trong ổ đĩa của người triển khai. Máy cần PowerShell và OpenSSH Client (`ssh -V`). Cấp quyền một lần rồi mỗi người giữ cấu hình và key riêng.
+
+### Chuẩn bị một lần cho mỗi thành viên
+
+1. Tạo SSH key riêng nếu chưa có; chỉ gửi file `.pub` cho người quản lý lab để thêm quyền SSH. Không dùng chung private key của AWS và không đưa key vào repository.
+
+   ```powershell
+   New-Item -ItemType Directory -Force "$env:USERPROFILE\.ssh" | Out-Null
+   ssh-keygen -t ed25519 -f "$env:USERPROFILE\.ssh\btl_lab_ed25519"
+   ```
+
+2. Tại thư mục gốc repo, tạo cấu hình riêng (giữ nguyên nếu đã có):
+
+   ```powershell
+   Copy-Item deploy/tv2/lab-access.example.json deploy/tv2/lab-access.json
+   ```
+
+3. Sửa `lab-access.json`: `ec2_host` là IP hoặc tên DNS hiện tại do nhóm thống nhất, `ssh_user` là tài khoản được cấp, `ssh_key_path` là key trên máy của chính mình. `app_host`, `app_port` lấy từ lab (hiện `10.42.0.21:8000`). Mặc định dùng cổng local 18000. Đường dẫn `~/` được hiểu theo home của người chạy; đường dẫn tương đối tính từ thư mục chứa JSON. File này đã bị loại khỏi Git và Docker build context.
+4. Nhận API key qua kênh riêng và nhập vào ô API key trên UI. Không cần nhận credential Keystone hoặc mật khẩu PostgreSQL để dùng giao diện/API.
+
+### Mỗi lần sử dụng
+
+Mở PowerShell tại thư mục gốc repo:
 
 ```powershell
-& 'D:\aws\btl-tv2-20261026\Open-App.ps1'
+./scripts/connect-lab.ps1
 ```
 
-Script tạo SSH tunnel ở nền bằng key `D:\aws\openstack-lab-key-2.pem`. Sau đó mở:
+Giữ terminal này mở; `Ctrl+C` đóng tunnel. Lần đầu, SSH hỏi xác nhận host fingerprint; đối chiếu fingerprint do người quản lý lab cung cấp. Sau khi SSH kết nối, mở:
 
 - Giao diện: http://127.0.0.1:18000
 - API docs: http://127.0.0.1:18000/docs
 - Readiness: http://127.0.0.1:18000/health/ready
 
-API key được lưu riêng tại `D:\aws\btl-tv2-20261026\access.json`. Mở file đó, sao chép giá trị `api_key` vào ô API key trên giao diện, rồi tải lại danh sách. File không nằm trong repository và không được đưa lên Git hoặc gửi kèm báo cáo.
-
-Cách tạo tunnel thủ công, giữ cửa sổ PowerShell này mở:
+Trong terminal thứ hai, kiểm tra trạng thái và API:
 
 ```powershell
-ssh -i 'D:\aws\openstack-lab-key-2.pem' -N -L 127.0.0.1:18000:10.42.0.21:8000 ubuntu@18.140.98.121
+./scripts/check-lab.ps1 -CheckApi
 ```
 
-Nếu EC2 được stop/start và đổi public IP, truyền IP mới vào `Open-App.ps1 -Ec2Host IP_MOI`. Địa chỉ private của hai VM vẫn là địa chỉ trong mạng OpenStack, không phải địa chỉ để truy cập trực tiếp từ Windows.
+Script hỏi API key bằng ô nhập ẩn (hoặc đọc `APP_API_KEY` nếu đã đặt trong phiên shell), kiểm tra readiness Swift, frontend, quyền đọc danh sách và verify một tệp đang có. Nó không upload, sửa/xóa object, dừng DB hoặc reboot VM. Nếu chỉ kiểm tra readiness/assets thì bỏ `-CheckApi`.
+
+Nếu IP thay đổi hoặc cổng local bị chiếm:
+
+```powershell
+./scripts/connect-lab.ps1 -Ec2Host IP_HOAC_DNS_MOI -LocalPort 18001
+./scripts/check-lab.ps1 -BaseUrl http://127.0.0.1:18001 -CheckApi
+```
+
+Tham số dòng lệnh ghi đè cấu hình cho lần chạy đó; sửa `lab-access.json` để lưu cho lần sau. Script nhận hostname nên nhóm có thể dùng tên máy VPN/DNS đã cấu hình thay public IP. Script không tự tạo VPN/DNS hoặc giữ EC2 luôn bật. Địa chỉ private của App VM chỉ là đích forward từ EC2.
+
+### Người quản lý lab chuẩn bị một lần
+
+- Thêm public key của từng thành viên vào tài khoản SSH được chọn, cấp quyền kết nối/forward tới App VM; cấp API key ngoài Git. Cấu hình quyền SSH/security group phù hợp với đường kết nối của nhóm. Thành viên chỉ cần dùng tunnel không phải nhận private key EC2 của người triển khai.
+- Cung cấp endpoint và fingerprint SSH. Trên EC2, có thể xem fingerprint bằng `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`.
+- Mỗi lần bật EC2, bảo đảm dịch vụ OpenStack sẵn sàng, chạy `btl-tv2 start` rồi `btl-tv2 status` để bật/kiểm tra hai guest. Khi EC2 hoặc guest chưa bật, thành viên không thể dùng lab dù đã merge code.
+- Nếu public IP tự cấp đổi sau Stop/Start, thông báo endpoint mới để mỗi người sửa cấu hình, hoặc phối hợp TV1 dùng tên truy cập ổn định. Không cần commit lại IP hoặc sửa code ứng dụng.
+
+Tunnel mở bản ứng dụng **đã triển khai trên AWS**. Thay đổi code vừa merge trên máy thành viên không tự được triển khai lên App VM. Để phát triển code mới độc lập, dùng `./scripts/start.ps1` và hướng dẫn local trong [CONTRIBUTING.md](../../CONTRIBUTING.md); khi cần thử code mới với Swift/Cinder, triển khai theo [hướng dẫn cụm nhóm](../README.md) trong phiên tích hợp.
+
+| Hiện tượng | Cách xử lý |
+|---|---|
+| SSH timeout | Kiểm tra EC2 đang chạy, endpoint và đường mạng/security group |
+| `Permission denied (publickey)` | Kiểm tra `ssh_user`, đường dẫn key và public key đã được cấp quyền |
+| Host key thay đổi | Xác nhận fingerprint với người quản lý trước khi cập nhật `known_hosts` |
+| Cổng local bị chiếm | Đổi `-LocalPort`, mở đúng URL tương ứng |
+| Tunnel mở nhưng readiness không đạt | Người vận hành kiểm tra App/DB VM, Swift và `btl-tv2 status` |
+| API trả 401 | Nhập đúng API key được cấp riêng |
 
 ## 2 Kiểm tra tự động từng nhóm
 
 SSH vào EC2:
 
 ```powershell
-ssh -i 'D:\aws\openstack-lab-key-2.pem' ubuntu@18.140.98.121
+$Lab = Get-Content -Raw deploy/tv2/lab-access.json | ConvertFrom-Json
+# Thay đường dẫn bằng key của chính bạn nếu đã tùy chỉnh ssh_key_path.
+ssh -i "$env:USERPROFILE/.ssh/btl_lab_ed25519" "$($Lab.ssh_user)@$($Lab.ec2_host)"
 ```
+
+Phần vận hành bên dưới yêu cầu tài khoản được cấp quyền quản trị lab; thành viên chỉ mở ứng dụng qua tunnel không cần chạy các lệnh này.
 
 Tại shell EC2:
 
@@ -97,7 +148,7 @@ Kết quả gần nhất trên EC2 nằm tại:
 
 `tv2-verification.json` trên EC2 bị ghi đè sau mỗi lần chạy `check` hoặc `test-all`. Bản 28 ca ngày 26/10 và bản 22 ca ngày 28/10 được lưu riêng trong [evidence/](evidence/README.md) để phân biệt lịch sử.
 
-Script kiểm tra được bàn giao tại [verify_tv2.py](verify_tv2.py), chạy bằng Python hệ thống trên EC2 với `requests`, `keystoneauth1`, `python-swiftclient`. Nó dùng cấu hình lab `/srv/btl-tv2/state.json`, credential riêng `/srv/btl-tv2/secrets.json` và SSH key `/srv/btl-tv2/id_ed25519` cùng `known_hosts` để vào DB VM. Những file riêng này phải được cấp ngoài Git; script không phải bộ dựng lab mới và không chạy độc lập trên máy vừa clone. `btl-tv2` và `Open-App.ps1` là tiện ích đã cài trong môi trường lab; máy khác có thể dùng lệnh SSH thủ công bên trên.
+Script kiểm tra được bàn giao tại [verify_tv2.py](verify_tv2.py), chạy bằng Python hệ thống trên EC2 với `requests`, `keystoneauth1`, `python-swiftclient`. Nó dùng cấu hình lab `/srv/btl-tv2/state.json`, credential riêng `/srv/btl-tv2/secrets.json` và SSH key `/srv/btl-tv2/id_ed25519` cùng `known_hosts` để vào DB VM. Những file riêng này phải được cấp ngoài Git; script không phải bộ dựng lab mới và không chạy độc lập trên máy vừa clone. `btl-tv2` là tiện ích quản trị đã cài trên EC2; script kết nối cho thành viên nằm ngay trong repo tại [connect-lab.ps1](../../scripts/connect-lab.ps1).
 
 ## 3 Kiểm tra bằng giao diện
 
@@ -120,8 +171,8 @@ Readiness được mở không cần API key để phục vụ health check. API
 
 ```powershell
 $Base = 'http://127.0.0.1:18000'
-$Access = Get-Content -Raw -LiteralPath 'D:\aws\btl-tv2-20261026\access.json' | ConvertFrom-Json
-$Headers = @{ 'X-API-Key' = $Access.api_key }
+$SecureKey = Read-Host 'Lab API key' -AsSecureString
+$Headers = @{ 'X-API-Key' = ([pscredential]::new('lab', $SecureKey)).GetNetworkCredential().Password }
 Invoke-RestMethod "$Base/health/ready"
 ```
 
@@ -252,4 +303,4 @@ Hẹn phiên tích hợp trước khi thay IP, credential, Neutron hoặc chạy
 6. Kết quả restore vào DB tạm và persistence sau reboot.
 7. Khi tích hợp xong: hai AZ, VIP/pool Octavia, metric/alarm và VM scale-out/scale-in thật.
 
-Các log triển khai và kết quả kiểm chứng trên Windows được giữ trong `D:\aws\btl-tv2-20261026`. Không chụp hoặc đưa `access.json`, `secrets.json`, `app.env`, SSH private key, token hay credential vào ảnh báo cáo.
+Các bằng chứng đã bàn giao nằm trong [evidence/](evidence/README.md); log vận hành và credential thật được giữ riêng ngoài Git. Không chụp hoặc đưa `lab-access.json`, `secrets.json`, `app.env`, SSH private key, token hay credential vào ảnh báo cáo.

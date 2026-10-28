@@ -73,6 +73,10 @@ curl.exe http://localhost:8000/api/files
 
 Lab độc lập của TV2 đã được triển khai và kiểm chứng với App VM private, Swift và PostgreSQL trên Cinder. Xem [cách mở ứng dụng và kiểm thử từng mục](deploy/tv2/README.md). Lab hiện có một compute; hai AZ, Octavia và autoscaling còn cần tích hợp với nhóm.
 
+Thành viên muốn dùng lab đang chạy: sao chép `deploy/tv2/lab-access.example.json` thành `lab-access.json`, điền endpoint và key SSH của mình, rồi chạy `./scripts/connect-lab.ps1`. Giữ terminal mở và truy cập http://127.0.0.1:18000, nhập API key được cấp riêng. Không cần Docker để dùng bản AWS. Kiểm tra bằng `./scripts/check-lab.ps1 -CheckApi`. Chi tiết cấp quyền một lần và xử lý lỗi nằm trong hướng dẫn TV2 bên trên.
+
+Để tự phát triển code vừa merge, dùng bản local theo hướng dẫn đầu trang. Tunnel truy cập code đã triển khai trên AWS; nó không tự đưa các thay đổi mới từ máy thành viên lên App VM. EC2 và hai guest phải đang chạy để dùng lab chung.
+
 Xem [hướng dẫn triển khai cụm nhóm](deploy/README.md). Cấu hình chạy app trên VM private có sẵn tại `deploy/compose.openstack.yaml`. Khi chuyển từ lab TV2 sang cụm chung, cần kiểm thử lại Swift/Cinder và hoàn thiện các minh chứng hai AZ, Octavia, monitoring và autoscaling.
 
 **Không chạy nhiều App VM với storage local độc lập.** Các App VM phải cùng dùng Swift và cùng PostgreSQL; schema/storage không nằm trên từng app instance.
