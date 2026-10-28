@@ -1,5 +1,7 @@
 # Chạy và kiểm thử phần TV2 trên OpenStack
 
+Thành viên và agent đọc [AGENTS_TV2.md](../../AGENTS_TV2.md) trước để chạy từng bước, xem checklist của người quản lý và quy trình dành cho agent. Tài liệu dưới đây mô tả thêm mô hình, vận hành và kiểm thử tích hợp.
+
 Phần backend và dữ liệu đã được triển khai thật trên EC2 (public IP tại ngày 28/10/2026: `18.140.98.121`). Ứng dụng chạy trong VM Nova private, lưu nội dung qua Swift và metadata trong PostgreSQL có thư mục dữ liệu đặt trên volume Cinder. Đây là môi trường độc lập của TV2 trên một compute; nhóm vẫn cần tích hợp hai AZ, Octavia và autoscaling.
 
 Phiên triển khai đã đạt 17 kiểm thử của project và 28 kiểm tra tích hợp thật, gồm kiểm tra lỗi dependency, scope Keystone, backup/restore. Reboot riêng DB VM và App VM đều giữ được dữ liệu. Ngày 27/10/2026 đã kiểm chứng thêm sau khi Stop/Start EC2: dịch vụ nền tự chạy, bật lại hai VM bằng `btl-tv2 start`, web sẵn sàng và SHA-256 của tệp cũ vẫn khớp.
