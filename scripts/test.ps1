@@ -1,6 +1,8 @@
 $ErrorActionPreference = 'Stop'
 Push-Location (Split-Path $PSScriptRoot -Parent)
 try {
+    node --test tests/frontend/api-client.test.cjs
+    if ($LASTEXITCODE -ne 0) { throw 'Frontend tests failed. Use Node.js 20+.' }
     docker compose exec -T app python -m pytest tests -q -p no:cacheprovider
     if ($LASTEXITCODE -ne 0) { throw 'Automated tests failed.' }
     docker compose exec -T app python tests/smoke_live.py

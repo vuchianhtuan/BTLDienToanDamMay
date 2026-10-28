@@ -25,6 +25,14 @@ Upload một tệp rồi bấm Verify. Kết quả gồm SHA-256 gốc, SHA-256 
 
 ## Kiểm thử và vận hành
 
+Frontend có bộ kiểm thử HTTP/clipboard chạy bằng Node.js 20+ (Node chỉ cần cho test, không cần để chạy ứng dụng):
+
+```powershell
+node --test tests/frontend/api-client.test.cjs
+```
+
+CI chạy bộ test này trước khi build Docker. Giao diện có timeout cho request; nếu upload mất kết nối, hãy làm mới danh sách trước khi thử lại vì server có thể đã nhận tệp. Không tự động gửi lại upload.
+
 ```powershell
 docker compose exec -T app python -m pytest tests -q -p no:cacheprovider
 docker compose exec -T app python tests/smoke_live.py
