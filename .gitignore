@@ -25,3 +25,5 @@ htmlcov/
 Thumbs.db
 .idea/
 .vscode/
+deploy/elasticity/local/
+**/*.env.json

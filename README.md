@@ -73,6 +73,8 @@ curl.exe http://localhost:8000/api/files
 
 Xem [hướng dẫn triển khai](deploy/README.md). Cấu hình chạy app trên VM private có sẵn tại `deploy/compose.openstack.yaml`. Chưa có hạ tầng OpenStack thật trong phiên triển khai local; Swift, Cinder, Octavia, hai AZ và autoscaling cần kiểm thử tích hợp riêng.
 
+TV3 có thể chuẩn bị độc lập bằng [bộ Heat/Octavia/Aodh và kiểm tra offline](deploy/elasticity/README.md), cùng [kịch bản demo, sampler HTTP và bảng chi phí](docs/TV3_DEMO.md). Alarm mặc định tắt; template chưa được xác nhận trên cloud thật.
+
 **Không chạy nhiều App VM với storage local độc lập.** Các App VM phải cùng dùng Swift và cùng PostgreSQL; schema/storage không nằm trên từng app instance.
 
 ## Làm việc nhóm
