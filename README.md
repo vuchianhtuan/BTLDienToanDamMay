@@ -71,7 +71,9 @@ curl.exe http://localhost:8000/api/files
 
 ## Chuyển sang OpenStack
 
-Xem [hướng dẫn triển khai](deploy/README.md). Cấu hình chạy app trên VM private có sẵn tại `deploy/compose.openstack.yaml`. Chưa có hạ tầng OpenStack thật trong phiên triển khai local; Swift, Cinder, Octavia, hai AZ và autoscaling cần kiểm thử tích hợp riêng.
+Lab độc lập của TV2 đã được triển khai và kiểm chứng với App VM private, Swift và PostgreSQL trên Cinder. Xem [cách mở ứng dụng và kiểm thử từng mục](deploy/tv2/README.md). Lab hiện có một compute; hai AZ, Octavia và autoscaling còn cần tích hợp với nhóm.
+
+Xem [hướng dẫn triển khai cụm nhóm](deploy/README.md). Cấu hình chạy app trên VM private có sẵn tại `deploy/compose.openstack.yaml`. Khi chuyển từ lab TV2 sang cụm chung, cần kiểm thử lại Swift/Cinder và hoàn thiện các minh chứng hai AZ, Octavia, monitoring và autoscaling.
 
 **Không chạy nhiều App VM với storage local độc lập.** Các App VM phải cùng dùng Swift và cùng PostgreSQL; schema/storage không nằm trên từng app instance.
 

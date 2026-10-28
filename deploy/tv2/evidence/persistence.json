@@ -1,0 +1,9 @@
+{
+  "database_vm_reboot": true,
+  "cinder_remounted": true,
+  "app_container_restart": true,
+  "fixture_id": "e155e65e-5e4a-4625-8e3b-2f5078bd13be",
+  "sha256": "f019ae93c4afda3fd63c701abec8a9c3421f58371ec398b124cb6b4eae98226a",
+  "app_vm_reboot": true,
+  "container_mss_startup": true
+}
