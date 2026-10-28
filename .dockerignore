@@ -15,3 +15,6 @@ test-results
 *.pem
 *.key
 .github
+deploy/elasticity/local
+**/*.env.json
+**/app.env

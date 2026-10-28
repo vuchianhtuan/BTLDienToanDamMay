@@ -1,0 +1,622 @@
+{
+  "heat_template_version": "2018-08-31",
+  "description": "TV3: separate private LB, two AZ-pinned groups, baseline 2 App VMs; optional CPU alarms.",
+  "parameters": {
+    "vip_subnet_id": {
+      "type": "string",
+      "description": "Subnet UUID for the private VIP."
+    },
+    "member_subnet_id": {
+      "type": "string",
+      "description": "Subnet UUID containing App private addresses."
+    },
+    "client_cidr": {
+      "type": "string",
+      "description": "CIDR allowed to use the listener; routed lab/VPN clients only."
+    },
+    "image_id": {
+      "type": "string",
+      "description": "Private prepared Glance image UUID with Docker, cloud-init and preloaded app image."
+    },
+    "flavor_id": {
+      "type": "string",
+      "description": "App flavor ID."
+    },
+    "network_id": {
+      "type": "string",
+      "description": "Private App network UUID."
+    },
+    "app_security_group_id": {
+      "type": "string",
+      "description": "Existing restricted App security group UUID."
+    },
+    "key_name": {
+      "type": "string",
+      "description": "Existing SSH keypair name."
+    },
+    "container_image": {
+      "type": "string",
+      "description": "Preloaded Docker image reference; no pull or build on boot."
+    },
+    "app_env_b64": {
+      "type": "string",
+      "description": "Base64 dotenv, confidential lab input; hidden is not encryption.",
+      "hidden": true
+    },
+    "az1": {
+      "type": "string",
+      "description": "First compute AZ; must differ from az2."
+    },
+    "az2": {
+      "type": "string",
+      "description": "Second compute AZ."
+    },
+    "max_per_zone": {
+      "type": "number",
+      "description": "Hard cap 1..2 App VMs per AZ; budget excludes DB/Octavia VMs.",
+      "constraints": [
+        {
+          "range": {
+            "min": 1,
+            "max": 2
+          }
+        }
+      ],
+      "default": 2
+    },
+    "cooldown": {
+      "type": "number",
+      "description": "Seconds between group scaling operations.",
+      "constraints": [
+        {
+          "range": {
+            "min": 60
+          }
+        }
+      ],
+      "default": 300
+    },
+    "enable_alarms": {
+      "type": "boolean",
+      "description": "Keep false until actual Gnocchi measures and dimensions are verified.",
+      "default": false
+    },
+    "cpu_high_rate": {
+      "type": "number",
+      "description": "CPU scale-out threshold in nanoseconds/second, not percent.",
+      "default": 700000000
+    },
+    "cpu_low_rate": {
+      "type": "number",
+      "description": "CPU scale-in threshold in nanoseconds/second, not percent.",
+      "default": 200000000
+    },
+    "granularity": {
+      "type": "number",
+      "description": "Must exist in the cpu archive policy (upstream low-rate default 300s).",
+      "default": 300
+    },
+    "evaluation_periods": {
+      "type": "number",
+      "description": "Consecutive periods for Aodh evaluation.",
+      "default": 2
+    }
+  },
+  "resources": {
+    "loadbalancer": {
+      "type": "OS::Octavia::LoadBalancer",
+      "properties": {
+        "vip_subnet": {
+          "get_param": "vip_subnet_id"
+        }
+      }
+    },
+    "listener": {
+      "type": "OS::Octavia::Listener",
+      "properties": {
+        "loadbalancer": {
+          "get_resource": "loadbalancer"
+        },
+        "protocol": "HTTP",
+        "protocol_port": 80,
+        "allowed_cidrs": [
+          {
+            "get_param": "client_cidr"
+          }
+        ]
+      }
+    },
+    "pool": {
+      "type": "OS::Octavia::Pool",
+      "properties": {
+        "listener": {
+          "get_resource": "listener"
+        },
+        "protocol": "HTTP",
+        "lb_algorithm": "ROUND_ROBIN"
+      }
+    },
+    "monitor": {
+      "type": "OS::Octavia::HealthMonitor",
+      "properties": {
+        "pool": {
+          "get_resource": "pool"
+        },
+        "type": "HTTP",
+        "http_method": "GET",
+        "url_path": "/health/ready",
+        "expected_codes": "200",
+        "delay": 5,
+        "timeout": 3,
+        "max_retries": 3
+      }
+    },
+    "group1": {
+      "type": "OS::Heat::AutoScalingGroup",
+      "properties": {
+        "min_size": 1,
+        "desired_capacity": 1,
+        "max_size": {
+          "get_param": "max_per_zone"
+        },
+        "cooldown": {
+          "get_param": "cooldown"
+        },
+        "resource": {
+          "type": "app-member.json",
+          "properties": {
+            "image_id": {
+              "get_param": "image_id"
+            },
+            "flavor_id": {
+              "get_param": "flavor_id"
+            },
+            "network_id": {
+              "get_param": "network_id"
+            },
+            "member_subnet_id": {
+              "get_param": "member_subnet_id"
+            },
+            "app_security_group_id": {
+              "get_param": "app_security_group_id"
+            },
+            "key_name": {
+              "get_param": "key_name"
+            },
+            "container_image": {
+              "get_param": "container_image"
+            },
+            "app_env_b64": {
+              "get_param": "app_env_b64"
+            },
+            "pool_id": {
+              "get_resource": "pool"
+            },
+            "metering_group": {
+              "list_join": [
+                "-",
+                [
+                  {
+                    "get_param": "OS::stack_id"
+                  },
+                  "az1"
+                ]
+              ]
+            },
+            "availability_zone": {
+              "get_param": "az1"
+            }
+          }
+        }
+      }
+    },
+    "scale_out1": {
+      "type": "OS::Heat::ScalingPolicy",
+      "properties": {
+        "auto_scaling_group_id": {
+          "get_resource": "group1"
+        },
+        "adjustment_type": "change_in_capacity",
+        "scaling_adjustment": 1,
+        "cooldown": {
+          "get_param": "cooldown"
+        }
+      }
+    },
+    "cpu_out1": {
+      "type": "OS::Aodh::GnocchiAggregationByResourcesAlarm",
+      "properties": {
+        "metric": "cpu",
+        "resource_type": "instance",
+        "aggregation_method": "rate:mean",
+        "granularity": {
+          "get_param": "granularity"
+        },
+        "evaluation_periods": {
+          "get_param": "evaluation_periods"
+        },
+        "threshold": {
+          "get_param": "cpu_high_rate"
+        },
+        "comparison_operator": "gt",
+        "repeat_actions": true,
+        "query": {
+          "str_replace": {
+            "template": "{\"and\": [{\"=\": {\"server_group\": \"GROUP\"}}, {\"=\": {\"ended_at\": null}}]}",
+            "params": {
+              "GROUP": {
+                "list_join": [
+                  "-",
+                  [
+                    {
+                      "get_param": "OS::stack_id"
+                    },
+                    "az1"
+                  ]
+                ]
+              }
+            }
+          }
+        },
+        "alarm_actions": [
+          {
+            "str_replace": {
+              "template": "trust+URL",
+              "params": {
+                "URL": {
+                  "get_attr": [
+                    "scale_out1",
+                    "signal_url"
+                  ]
+                }
+              }
+            }
+          }
+        ],
+        "insufficient_data_actions": []
+      },
+      "condition": "alarms_enabled"
+    },
+    "scale_in1": {
+      "type": "OS::Heat::ScalingPolicy",
+      "properties": {
+        "auto_scaling_group_id": {
+          "get_resource": "group1"
+        },
+        "adjustment_type": "change_in_capacity",
+        "scaling_adjustment": -1,
+        "cooldown": {
+          "get_param": "cooldown"
+        }
+      }
+    },
+    "cpu_in1": {
+      "type": "OS::Aodh::GnocchiAggregationByResourcesAlarm",
+      "properties": {
+        "metric": "cpu",
+        "resource_type": "instance",
+        "aggregation_method": "rate:mean",
+        "granularity": {
+          "get_param": "granularity"
+        },
+        "evaluation_periods": {
+          "get_param": "evaluation_periods"
+        },
+        "threshold": {
+          "get_param": "cpu_low_rate"
+        },
+        "comparison_operator": "lt",
+        "repeat_actions": true,
+        "query": {
+          "str_replace": {
+            "template": "{\"and\": [{\"=\": {\"server_group\": \"GROUP\"}}, {\"=\": {\"ended_at\": null}}]}",
+            "params": {
+              "GROUP": {
+                "list_join": [
+                  "-",
+                  [
+                    {
+                      "get_param": "OS::stack_id"
+                    },
+                    "az1"
+                  ]
+                ]
+              }
+            }
+          }
+        },
+        "alarm_actions": [
+          {
+            "str_replace": {
+              "template": "trust+URL",
+              "params": {
+                "URL": {
+                  "get_attr": [
+                    "scale_in1",
+                    "signal_url"
+                  ]
+                }
+              }
+            }
+          }
+        ],
+        "insufficient_data_actions": []
+      },
+      "condition": "alarms_enabled"
+    },
+    "group2": {
+      "type": "OS::Heat::AutoScalingGroup",
+      "properties": {
+        "min_size": 1,
+        "desired_capacity": 1,
+        "max_size": {
+          "get_param": "max_per_zone"
+        },
+        "cooldown": {
+          "get_param": "cooldown"
+        },
+        "resource": {
+          "type": "app-member.json",
+          "properties": {
+            "image_id": {
+              "get_param": "image_id"
+            },
+            "flavor_id": {
+              "get_param": "flavor_id"
+            },
+            "network_id": {
+              "get_param": "network_id"
+            },
+            "member_subnet_id": {
+              "get_param": "member_subnet_id"
+            },
+            "app_security_group_id": {
+              "get_param": "app_security_group_id"
+            },
+            "key_name": {
+              "get_param": "key_name"
+            },
+            "container_image": {
+              "get_param": "container_image"
+            },
+            "app_env_b64": {
+              "get_param": "app_env_b64"
+            },
+            "pool_id": {
+              "get_resource": "pool"
+            },
+            "metering_group": {
+              "list_join": [
+                "-",
+                [
+                  {
+                    "get_param": "OS::stack_id"
+                  },
+                  "az2"
+                ]
+              ]
+            },
+            "availability_zone": {
+              "get_param": "az2"
+            }
+          }
+        }
+      }
+    },
+    "scale_out2": {
+      "type": "OS::Heat::ScalingPolicy",
+      "properties": {
+        "auto_scaling_group_id": {
+          "get_resource": "group2"
+        },
+        "adjustment_type": "change_in_capacity",
+        "scaling_adjustment": 1,
+        "cooldown": {
+          "get_param": "cooldown"
+        }
+      }
+    },
+    "cpu_out2": {
+      "type": "OS::Aodh::GnocchiAggregationByResourcesAlarm",
+      "properties": {
+        "metric": "cpu",
+        "resource_type": "instance",
+        "aggregation_method": "rate:mean",
+        "granularity": {
+          "get_param": "granularity"
+        },
+        "evaluation_periods": {
+          "get_param": "evaluation_periods"
+        },
+        "threshold": {
+          "get_param": "cpu_high_rate"
+        },
+        "comparison_operator": "gt",
+        "repeat_actions": true,
+        "query": {
+          "str_replace": {
+            "template": "{\"and\": [{\"=\": {\"server_group\": \"GROUP\"}}, {\"=\": {\"ended_at\": null}}]}",
+            "params": {
+              "GROUP": {
+                "list_join": [
+                  "-",
+                  [
+                    {
+                      "get_param": "OS::stack_id"
+                    },
+                    "az2"
+                  ]
+                ]
+              }
+            }
+          }
+        },
+        "alarm_actions": [
+          {
+            "str_replace": {
+              "template": "trust+URL",
+              "params": {
+                "URL": {
+                  "get_attr": [
+                    "scale_out2",
+                    "signal_url"
+                  ]
+                }
+              }
+            }
+          }
+        ],
+        "insufficient_data_actions": []
+      },
+      "condition": "alarms_enabled"
+    },
+    "scale_in2": {
+      "type": "OS::Heat::ScalingPolicy",
+      "properties": {
+        "auto_scaling_group_id": {
+          "get_resource": "group2"
+        },
+        "adjustment_type": "change_in_capacity",
+        "scaling_adjustment": -1,
+        "cooldown": {
+          "get_param": "cooldown"
+        }
+      }
+    },
+    "cpu_in2": {
+      "type": "OS::Aodh::GnocchiAggregationByResourcesAlarm",
+      "properties": {
+        "metric": "cpu",
+        "resource_type": "instance",
+        "aggregation_method": "rate:mean",
+        "granularity": {
+          "get_param": "granularity"
+        },
+        "evaluation_periods": {
+          "get_param": "evaluation_periods"
+        },
+        "threshold": {
+          "get_param": "cpu_low_rate"
+        },
+        "comparison_operator": "lt",
+        "repeat_actions": true,
+        "query": {
+          "str_replace": {
+            "template": "{\"and\": [{\"=\": {\"server_group\": \"GROUP\"}}, {\"=\": {\"ended_at\": null}}]}",
+            "params": {
+              "GROUP": {
+                "list_join": [
+                  "-",
+                  [
+                    {
+                      "get_param": "OS::stack_id"
+                    },
+                    "az2"
+                  ]
+                ]
+              }
+            }
+          }
+        },
+        "alarm_actions": [
+          {
+            "str_replace": {
+              "template": "trust+URL",
+              "params": {
+                "URL": {
+                  "get_attr": [
+                    "scale_in2",
+                    "signal_url"
+                  ]
+                }
+              }
+            }
+          }
+        ],
+        "insufficient_data_actions": []
+      },
+      "condition": "alarms_enabled"
+    }
+  },
+  "outputs": {
+    "vip_address": {
+      "value": {
+        "get_attr": [
+          "loadbalancer",
+          "vip_address"
+        ]
+      }
+    },
+    "loadbalancer_id": {
+      "value": {
+        "get_resource": "loadbalancer"
+      }
+    },
+    "pool_id": {
+      "value": {
+        "get_resource": "pool"
+      }
+    },
+    "group1_id": {
+      "value": {
+        "get_resource": "group1"
+      }
+    },
+    "metering_group1": {
+      "value": {
+        "list_join": [
+          "-",
+          [
+            {
+              "get_param": "OS::stack_id"
+            },
+            "az1"
+          ]
+        ]
+      }
+    },
+    "scale_out1_id": {
+      "value": {
+        "get_resource": "scale_out1"
+      }
+    },
+    "scale_in1_id": {
+      "value": {
+        "get_resource": "scale_in1"
+      }
+    },
+    "group2_id": {
+      "value": {
+        "get_resource": "group2"
+      }
+    },
+    "metering_group2": {
+      "value": {
+        "list_join": [
+          "-",
+          [
+            {
+              "get_param": "OS::stack_id"
+            },
+            "az2"
+          ]
+        ]
+      }
+    },
+    "scale_out2_id": {
+      "value": {
+        "get_resource": "scale_out2"
+      }
+    },
+    "scale_in2_id": {
+      "value": {
+        "get_resource": "scale_in2"
+      }
+    }
+  },
+  "conditions": {
+    "alarms_enabled": {
+      "get_param": "enable_alarms"
+    }
+  }
+}

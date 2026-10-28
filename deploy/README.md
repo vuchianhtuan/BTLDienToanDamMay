@@ -40,6 +40,8 @@ Không copy volume `file-data` local lên từng App VM để giả lập shared
 
 ## Các phần hạ tầng còn phải triển khai
 
+Bộ chuẩn bị TV3 nằm trong [elasticity/](elasticity/README.md): template LB, hai nhóm VM theo AZ, alarm tùy chọn, kiểm tra offline và công cụ thu snapshot chỉ đọc. Các template này chưa được chạy trên OpenStack; dùng runbook để validate và triển khai từng bước sau khi có môi trường thật.
+
 - Chốt bản DevStack/OpenStack và plugin đồng bộ trên cả ba node.
 - Thử nested KVM, Tailscale, MTU và đường đi của floating IP tới người xem demo.
 - Dựng Swift/Cinder/PostgreSQL, Nova AZ, Octavia và health monitor.
