@@ -1,5 +1,7 @@
 # Công việc TV3 Đinh Kiều Công Tuấn
 
+**Cập nhật bản bàn giao ngày 28/10/2026:** code ghép nằm trên `feat/tv3-handoff`; xem [TV3_HANDOFF.md](TV3_HANDOFF.md) và [kết quả bản ghép](evidence/tv3-handoff/RESULTS.md). Nhánh `feat/cong-tuan-ui-loadtest` giữ revision `a3fa8a0`. Các mục bên dưới là nhật ký các đợt cũ, không phải trạng thái môi trường mới nhất; bản ghép đã được kiểm thử bằng Docker/PostgreSQL. OpenStack thật vẫn chưa được xác minh.
+
 Nhánh làm việc: feat/cong-tuan-ui-loadtest. Đợt đầu hoàn thiện trải nghiệm upload và độ tin cậy của workload; phần cloud cần endpoint thật từ TV1/TV2.
 
 ## Đã thực hiện ngày 22 tháng 10 năm 2026

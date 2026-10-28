@@ -1,5 +1,7 @@
 # File Integrity System
 
+**Bản bàn giao TV3:** lấy nhánh `feat/tv3-handoff`, đọc [hướng dẫn lấy code và tích hợp cho thành viên/agent](docs/TV3_HANDOFF.md). Nhánh này đã ghép UI, Locust và bộ chuẩn bị elasticity; không cần lấy từng PR riêng.
+
 Repository của nhóm: [BTLDienToanDamMay](https://github.com/vuchianhtuan/BTLDienToanDamMay). Thành viên mới bắt đầu từ [CONTRIBUTING.md](CONTRIBUTING.md), [API contract](docs/API_CONTRACT.md) và [kết quả kiểm chứng local](docs/VERIFICATION.md).
 
 Ứng dụng bài tập lớn Điện toán đám mây: lưu tệp, tải xuống và kiểm tra SHA-256. Bản local chạy FastAPI + PostgreSQL thật + storage trên Docker volume. Adapter Swift dùng cùng API và được cấu hình riêng khi có OpenStack.

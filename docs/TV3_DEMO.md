@@ -10,7 +10,7 @@
 | Khả dụng | Chạy sampler HTTP local, hiểu lỗi readiness và tập thu snapshot |
 | Báo cáo | Điền phần đã có chứng cứ; để `NOT AVAILABLE` ở kết quả cloud chưa chạy |
 
-PR #1: <https://github.com/vuchianhtuan/BTLDienToanDamMay/pull/1>. PR #2: <https://github.com/vuchianhtuan/BTLDienToanDamMay/pull/2>. Bộ elasticity nằm ở nhánh riêng, không chứa code của hai PR này khi chúng chưa merge. Muốn dùng chung, tích hợp các PR đã review vào nhánh thử nghiệm sau; không giả định checkout nhánh này sẽ có UI/Locust mới.
+PR #1: <https://github.com/vuchianhtuan/BTLDienToanDamMay/pull/1>. PR #2: <https://github.com/vuchianhtuan/BTLDienToanDamMay/pull/2>. Bản bàn giao `feat/tv3-handoff` đã ghép cả hai phần cùng elasticity; xem [TV3_HANDOFF.md](TV3_HANDOFF.md) để lấy code và tích hợp. Các báo cáo của từng PR ghi nhận lần thử lịch sử, không thay cho kiểm thử bản ghép.
 
 ## Tập thu bằng chứng ngay trên máy cá nhân
 

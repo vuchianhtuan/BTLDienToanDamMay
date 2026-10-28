@@ -4,6 +4,7 @@ deploy/app.env
 deploy/elasticity/private
 deploy/elasticity/evidence
 .venv
+.venv-tools
 __pycache__
 .pytest_cache
 data

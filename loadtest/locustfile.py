@@ -1,5 +1,6 @@
 import hashlib
 import json
+import logging
 import os
 from pathlib import Path
 from time import perf_counter
@@ -46,7 +47,8 @@ class FileUser(HttpUser):
         try:
             selected = str(UUID(selected)) if selected else ""
         except ValueError:
-            raise ValueError("LOADTEST_FILE_ID must be a UUID") from None
+            logging.getLogger(__name__).error("LOADTEST_FILE_ID must be a UUID")
+            self.abort_fixture()
         offset, batch = 0, 200 if selected else 1
         while self.fixture is None:
             invalid = False

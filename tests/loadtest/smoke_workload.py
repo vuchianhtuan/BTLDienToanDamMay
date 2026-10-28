@@ -76,7 +76,8 @@ def main():
                 user.download()
                 assert results[-1]["exception"] is not None
                 # Missing selected fixture and invalid credentials must stop users.
-                for selected, key in [(str(uuid4()), env["APP_API_KEY"]), (fixture["id"], "wrong")]:
+                for selected, key in [(str(uuid4()), env["APP_API_KEY"]), (fixture["id"], "wrong"),
+                                      ("not-a-uuid", env["APP_API_KEY"])]:
                     os.environ["LOADTEST_FILE_ID"] = selected
                     os.environ["APP_API_KEY"] = key
                     other = FileUser(environment)
@@ -89,6 +90,7 @@ def main():
                     finally:
                         other.client.close()
                     assert results[-1]["exception"] is not None
+                    assert environment.process_exit_code == 1
                 user.client.close()
                 print("PASS: valid workload, streamed byte count, tampered verify/download, missing object, missing fixture, API key")
             finally:
