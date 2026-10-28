@@ -12,21 +12,23 @@ function show(text, kind = "") {
 function headers() {
   return $("apiKey").value ? { "X-API-Key": $("apiKey").value } : {};
 }
-async function api(url, options = {}) {
-  const r = await fetch(url, {
-    ...options,
-    headers: { ...headers(), ...(options.headers || {}) },
-  });
-  if (!r.ok) {
-    let detail = "HTTP " + r.status;
-    try {
-      const b = await r.json();
-      detail =
-        typeof b.detail === "string" ? b.detail : JSON.stringify(b.detail);
-    } catch {}
-    throw new Error(detail);
+function api(url, options = {}, config = {}) {
+  return IntegrityClient.request(
+    url,
+    {
+      ...options,
+      headers: { ...headers(), ...(options.headers || {}) },
+    },
+    config,
+  );
+}
+async function copy(hash) {
+  try {
+    await IntegrityClient.copyHash(hash);
+    show("Đã sao chép SHA-256.", "success");
+  } catch (error) {
+    show(error.message, "error");
   }
-  return r;
 }
 function bytes(n) {
   return n < 1024
@@ -37,9 +39,11 @@ function bytes(n) {
 }
 async function health() {
   try {
-    const r = await fetch("/health/ready");
-    if (!r.ok) throw new Error();
-    const data = await r.json();
+    const data = await IntegrityClient.request(
+      "/health/ready",
+      {},
+      { timeoutMs: 10000 },
+    );
     limit = data.max_file_bytes;
     $("status").textContent = "Sẵn sàng · " + data.storage;
     $("status").className = "status ok";
@@ -58,9 +62,11 @@ function cell(row, text, cls) {
 }
 async function refresh() {
   try {
-    const data = await (
-      await api("/api/files?offset=" + offset + "&limit=" + pageSize)
-    ).json();
+    $("refresh").disabled = true;
+    $("refresh").textContent = "Đang tải…";
+    const data = await api(
+      "/api/files?offset=" + offset + "&limit=" + pageSize,
+    );
     $("files").replaceChildren();
     for (const item of data) {
       const tr = document.createElement("tr");
@@ -80,18 +86,26 @@ async function refresh() {
       for (const [label, fn] of [
         ["Tải xuống", () => download(item)],
         ["Verify", () => verify(item)],
+        ["Sao chép hash", () => copy(item.sha256)],
       ]) {
         const b = document.createElement("button");
         b.textContent = label;
         b.className = "secondary";
         b.onclick = async () => {
           b.disabled = true;
+          b.textContent =
+            label === "Verify"
+              ? "Đang xác minh…"
+              : label === "Tải xuống"
+                ? "Đang tải…"
+                : "Đang sao chép…";
           try {
             await fn();
           } catch (e) {
             show(e.message, "error");
           } finally {
             b.disabled = false;
+            b.textContent = label;
           }
         };
         wrap.append(b);
@@ -110,11 +124,18 @@ async function refresh() {
     $("page").textContent = "Trang " + (offset / pageSize + 1);
   } catch (e) {
     show("Không đọc được danh sách: " + e.message, "error");
+  } finally {
+    $("refresh").disabled = false;
+    $("refresh").textContent = "Làm mới";
   }
 }
 async function download(item) {
-  const r = await api("/api/files/" + item.id + "/download");
-  const url = URL.createObjectURL(await r.blob());
+  const blob = await api(
+    "/api/files/" + item.id + "/download",
+    {},
+    { read: "blob", timeoutMs: 120000 },
+  );
+  const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
   a.download = item.filename;
@@ -122,22 +143,34 @@ async function download(item) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 async function verify(item) {
-  const r = await (
-    await api("/api/files/" + item.id + "/verify", { method: "POST" })
-  ).json();
+  $("verification").hidden = true;
+  show("Đang xác minh nội dung: " + item.filename + "…");
+  const r = await api(
+    "/api/files/" + item.id + "/verify",
+    { method: "POST" },
+    { timeoutMs: 120000 },
+  );
+  $("verification").hidden = false;
+  $("verification").className =
+    "panel verification" + (r.intact ? "" : " changed");
+  $("verificationTitle").textContent = r.intact
+    ? "TOÀN VẸN"
+    : "PHÁT HIỆN THAY ĐỔI";
+  $("verificationFile").textContent = item.filename;
+  $("expectedHash").textContent = r.expected_sha256;
+  $("actualHash").textContent = r.actual_sha256;
+  $("verificationSize").textContent =
+    "Dung lượng hiện tại / gốc: " +
+    r.actual_size +
+    " / " +
+    r.expected_size +
+    " byte";
+  $("copyExpected").onclick = () => copy(r.expected_sha256);
+  $("copyActual").onclick = () => copy(r.actual_sha256);
   show(
-    (r.intact ? "TOÀN VẸN" : "PHÁT HIỆN THAY ĐỔI") +
-      " · " +
-      item.filename +
-      "\nSHA-256 gốc: " +
-      r.expected_sha256 +
-      "\nSHA-256 hiện tại: " +
-      r.actual_sha256 +
-      "\nDung lượng: " +
-      r.actual_size +
-      " / " +
-      r.expected_size +
-      " byte",
+    r.intact
+      ? "Đã xác minh: nội dung khớp với lúc tải lên."
+      : "Nội dung khác với lúc tải lên. Kiểm tra hai mã băm bên dưới.",
     r.intact ? "success" : "error",
   );
 }
@@ -152,22 +185,39 @@ $("uploadForm").onsubmit = async (e) => {
   }
   busy = true;
   $("upload").disabled = true;
+  $("upload").textContent = "Đang tải lên…";
+  $("file").disabled = true;
+  $("uploadForm").setAttribute("aria-busy", "true");
   show("Đang tải lên " + file.name + "…");
   try {
-    await api("/api/files?filename=" + encodeURIComponent(file.name), {
-      method: "POST",
-      headers: { "Content-Type": "application/octet-stream" },
-      body: file,
-    });
+    await api(
+      "/api/files?filename=" + encodeURIComponent(file.name),
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/octet-stream" },
+        body: file,
+      },
+      { timeoutMs: 120000 },
+    );
     show("Đã lưu tệp và SHA-256: " + file.name, "success");
     $("file").value = "";
     offset = 0;
     await refresh();
   } catch (e) {
-    show("Tải lên thất bại: " + e.message, "error");
+    show(
+      "Tải lên chưa thành công: " +
+        e.message +
+        (e.uncertain
+          ? " Máy chủ có thể đã nhận tệp. Hãy làm mới danh sách trước khi tải lại."
+          : ""),
+      "error",
+    );
   } finally {
     busy = false;
     $("upload").disabled = false;
+    $("upload").textContent = "Tải lên và lưu SHA-256";
+    $("file").disabled = false;
+    $("uploadForm").setAttribute("aria-busy", "false");
   }
 };
 $("refresh").onclick = () => {
@@ -197,7 +247,8 @@ $("drop").addEventListener("dragleave", () =>
 $("drop").addEventListener("drop", (e) => {
   e.preventDefault();
   $("drop").classList.remove("drag");
-  if (e.dataTransfer.files.length) $("file").files = e.dataTransfer.files;
+  if (!busy && e.dataTransfer.files.length)
+    $("file").files = e.dataTransfer.files;
 });
 health();
 refresh();

@@ -201,7 +201,7 @@ td {
 .actions {
   display: flex;
   gap: 7px;
-  white-space: nowrap;
+  flex-wrap: wrap;
 }
 .actions button {
   padding: 8px 11px;
@@ -231,6 +231,37 @@ td {
   background: #e1f4e9;
   color: #176347;
 }
+.verification {
+  margin-bottom: 26px;
+  border-left: 4px solid #267957;
+}
+.verification.changed {
+  border-left-color: #af3341;
+}
+.hash-result {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin: 18px 0;
+}
+.hash-result > div {
+  min-width: 0;
+}
+.hash-result code {
+  display: block;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.hash-result button {
+  flex-shrink: 0;
+}
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid #83aefa;
+  outline-offset: 3px;
+}
 [hidden] {
   display: none !important;
 }
@@ -247,6 +278,11 @@ td {
   color: #7a889b;
 }
 @media (max-width: 760px) {
+  .hash-result {
+    align-items: start;
+    flex-direction: column;
+    gap: 8px;
+  }
   .top {
     grid-template-columns: 1fr;
   }
