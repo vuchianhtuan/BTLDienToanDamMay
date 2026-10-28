@@ -21,4 +21,4 @@ with httpx.Client(base_url=url, headers={"X-API-Key": key}, timeout=30) as clien
     verified = client.post(f'/api/files/{row["id"]}/verify')
     assert verified.status_code == 200 and verified.json()["intact"] is True
     assert any(item["id"] == row["id"] for item in client.get("/api/files").json())
-print("PASS: readiness, frontend assets, upload, PostgreSQL metadata, list, download, SHA-256 verify")
+print("PASS: readiness, frontend assets, upload, metadata, list, download, SHA-256 verify (DB/storage backend depends on target configuration)")

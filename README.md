@@ -1,8 +1,12 @@
 # File Integrity System
 
+**Bản tích hợp TV3 + TV2 ngày 28/10:** xem [kết quả ghép, cách chạy qua tunnel và đầu vào còn thiếu](docs/TV3_TV2_INTEGRATION.md). Nhánh `integration/tv3-tv2-handoff-20261028` kết hợp hai bản bàn giao; chưa tự deploy lên lab.
+
 **Bản bàn giao TV3:** lấy nhánh `feat/tv3-handoff`, đọc [hướng dẫn lấy code và tích hợp cho thành viên/agent](docs/TV3_HANDOFF.md). Nhánh này đã ghép UI, Locust và bộ chuẩn bị elasticity; không cần lấy từng PR riêng.
 
 Repository của nhóm: [BTLDienToanDamMay](https://github.com/vuchianhtuan/BTLDienToanDamMay). Thành viên mới bắt đầu từ [CONTRIBUTING.md](CONTRIBUTING.md), [API contract](docs/API_CONTRACT.md) và [kết quả kiểm chứng local](docs/VERIFICATION.md).
+
+Agent triển khai hoặc chạy phần TV2 đọc duy nhất [AGENTS_TV2.md](AGENTS_TV2.md): điều kiện hạ tầng/quyền truy cập, triển khai code lên App VM, cấu hình, kiểm thử, rollback và checklist người quản lý lab.
 
 Ứng dụng bài tập lớn Điện toán đám mây: lưu tệp, tải xuống và kiểm tra SHA-256. Bản local chạy FastAPI + PostgreSQL thật + storage trên Docker volume. Adapter Swift dùng cùng API và được cấu hình riêng khi có OpenStack.
 
@@ -81,9 +85,13 @@ curl.exe http://localhost:8000/api/files
 
 ## Chuyển sang OpenStack
 
-TV3 xem [bộ cấu hình và runbook elasticity](deploy/elasticity/README.md) để chuẩn bị Octavia, Heat/Aodh, failover và minh chứng. Bộ này có kiểm tra offline; chưa được triển khai trên cụm thật.
+Lab độc lập của TV2 đã được triển khai và kiểm chứng với App VM private, Swift và PostgreSQL trên Cinder. Xem [cách mở ứng dụng và kiểm thử từng mục](deploy/tv2/README.md). Lab hiện có một compute; hai AZ, Octavia và autoscaling còn cần tích hợp với nhóm.
 
-Xem [hướng dẫn triển khai](deploy/README.md). Cấu hình chạy app trên VM private có sẵn tại `deploy/compose.openstack.yaml`. Chưa có hạ tầng OpenStack thật trong phiên triển khai local; Swift, Cinder, Octavia, hai AZ và autoscaling cần kiểm thử tích hợp riêng.
+Thành viên muốn dùng lab đang chạy: sao chép `deploy/tv2/lab-access.example.json` thành `lab-access.json`, điền endpoint và key SSH của mình, rồi chạy `./scripts/connect-lab.ps1`. Giữ terminal mở và truy cập http://127.0.0.1:18000, nhập API key được cấp riêng. Không cần Docker để dùng bản AWS. Kiểm tra bằng `./scripts/check-lab.ps1 -CheckApi`. Chi tiết cấp quyền một lần và xử lý lỗi nằm trong hướng dẫn TV2 bên trên.
+
+Để tự phát triển code vừa merge, dùng bản local theo hướng dẫn đầu trang. Tunnel truy cập code đã triển khai trên AWS; nó không tự đưa các thay đổi mới từ máy thành viên lên App VM. EC2 và hai guest phải đang chạy để dùng lab chung.
+
+Xem [hướng dẫn triển khai cụm nhóm](deploy/README.md). Cấu hình chạy app trên VM private có sẵn tại `deploy/compose.openstack.yaml`. Khi chuyển từ lab TV2 sang cụm chung, cần kiểm thử lại Swift/Cinder và hoàn thiện các minh chứng hai AZ, Octavia, monitoring và autoscaling.
 
 TV3 có thể chuẩn bị độc lập bằng [bộ Heat/Octavia/Aodh và kiểm tra offline](deploy/elasticity/README.md), cùng [kịch bản demo, sampler HTTP và bảng chi phí](docs/TV3_DEMO.md). Alarm mặc định tắt; template chưa được xác nhận trên cloud thật.
 

@@ -61,6 +61,27 @@ docker compose exec -T app python tests/smoke_locust.py
 
 Integration chạy Locust thật trên ứng dụng thật cho trường hợp khỏe, rồi dùng HTTP fixture có kiểm soát cho các trường hợp: không có tệp, 401, verify trả false dù HTTP 200 và download hỏng cùng kích thước. Mỗi ca lỗi phải có failure được ghi nhận và exit code 1; lỗi import hoặc run không tạo request không được tính là test đạt.
 
-## Giới hạn đo local
+## Chạy trên Windows qua tunnel TV2 hoặc URL Octavia
+
+Không dùng `run-loadtest.ps1` (chạy trong container) để gọi tunnel chỉ mở trên Windows. Sau khi được quản lý lab cấp quyền, giữ `scripts/connect-lab.ps1` chạy và xác nhận `scripts/check-lab.ps1 -CheckApi` đạt. Thống nhất phiên đo tải với nhóm trước; bắt đầu profile light.
+
+Trong PowerShell thứ hai, dùng Python có dependency của repo, API key qua môi trường riêng và UUID tệp demo đã có:
+
+```powershell
+$secureLabKey = Read-Host 'API key' -AsSecureString
+try {
+    $env:APP_API_KEY = ([pscredential]::new('lab', $secureLabKey)).GetNetworkCredential().Password
+    .\.venv\Scripts\python.exe scripts/run_remote_loadtest.py --host http://127.0.0.1:18000 --file-id UUID_TEP_DEMO --profile light --seconds 30
+} finally {
+    Remove-Item Env:APP_API_KEY -ErrorAction SilentlyContinue
+    $secureLabKey.Dispose()
+}
+```
+
+Runner không upload/tạo SSH tunnel/deploy hay dừng dịch vụ. Báo cáo CSV/HTML/summary/log và `run.json` nằm trong `test-results/remote-locust/`; metadata ghi commit, trạng thái working tree và fixture UUID. Profile hỗ trợ light/medium/higher giống runner Docker; không chạy mức cao trước khi kiểm tra tác động. Dùng URL Octavia chỉ khi đã được nhóm cấp và chốt phiên đo.
+
+Đo qua SSH tunnel có thêm ảnh hưởng mã hóa/đường truyền SSH. TV2 lab hiện ghi nhận một App VM, nên kết quả HTTP qua tunnel không chứng minh LB, hai AZ hoặc autoscaling. Không deploy bản mới lên App VM chung chỉ vì đã merge mã nguồn.
+
+## Giới hạn đo local và từ xa
 
 Locust chạy trong cùng container với app ở cấu hình này, nên các con số chịu ảnh hưởng máy tạo tải và không đo đường truyền Tailscale/WAN. Download được đọc theo từng chunk để tính hash và đếm byte; latency gồm thời gian nhận/kiểm tra toàn bộ nội dung. Khi có cụm thật, chạy máy tạo tải riêng, dùng URL Octavia, cùng DB/Swift và thu metric/alarm/Heat cùng mốc thời gian. Thành công local không chứng minh autoscaling hoặc OpenStack đã hoạt động.

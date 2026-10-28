@@ -33,7 +33,8 @@ def main():
         with (data / "server.log").open("w") as log:
             server = subprocess.Popen([sys.executable, "-m", "uvicorn", "app.main:app",
                                        "--host", "127.0.0.1", "--port", str(port)],
-                                      cwd=ROOT, env=env, stdout=log, stderr=log)
+                                      cwd=ROOT, env=env, stdout=subprocess.PIPE,
+                                      stderr=subprocess.STDOUT, text=True)
             try:
                 for _ in range(100):
                     try:
@@ -42,7 +43,8 @@ def main():
                     except requests.RequestException:
                         pass
                     if server.poll() is not None:
-                        raise RuntimeError((data / "server.log").read_text())
+                        output, _ = server.communicate(timeout=5)
+                        raise RuntimeError(output)
                     time.sleep(0.1)
                 else:
                     raise RuntimeError("Test API did not become ready")
@@ -96,10 +98,13 @@ def main():
             finally:
                 server.terminate()
                 try:
-                    server.wait(timeout=10)
+                    output, _ = server.communicate(timeout=10)
                 except subprocess.TimeoutExpired:
                     server.kill()
-                    server.wait(timeout=5)
+                    output, _ = server.communicate(timeout=5)
+                log.write(output or "")
+                if server.stdout is not None:
+                    server.stdout.close()
 
 
 if __name__ == "__main__":

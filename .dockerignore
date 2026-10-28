@@ -3,6 +3,7 @@
 deploy/app.env
 deploy/elasticity/private
 deploy/elasticity/evidence
+deploy/tv2/lab-access.json
 .venv
 .venv-tools
 __pycache__

@@ -13,6 +13,8 @@ docker compose up --build -d --wait --wait-timeout 180
 
 Mở http://localhost:8000. Docker Desktop cần chạy Linux containers. Không cần cài Python/PostgreSQL riêng trên host. Repo không kèm dữ liệu đã upload, database, image đã build hoặc `.env` của người khác.
 
+Để dùng bản Swift/Cinder đã triển khai trên lab TV2, không cần Docker: làm theo [cấu hình truy cập lab cho thành viên](deploy/tv2/README.md#1-mở-giao-diện-từ-windows), rồi chạy `./scripts/connect-lab.ps1`. Mỗi người dùng key và cấu hình riêng; EC2/App/DB phải đang chạy. Đây là bản đang triển khai trên lab; khi sửa code trên máy mình, tiếp tục dùng bản local để kiểm thử trước khi phối hợp triển khai lên cụm.
+
 ## Chọn chế độ làm việc
 
 Chạy bản giống CI/demo:

@@ -1,7 +1,7 @@
 name: Application CI
 on:
   push:
-    branches: [main, feat/tv3-handoff]
+    branches: [main, feat/tv3-handoff, 'integration/**']
   pull_request:
   workflow_dispatch:
 permissions:
