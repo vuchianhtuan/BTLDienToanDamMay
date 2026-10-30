@@ -6,6 +6,17 @@ No EC2 has been launched and no cost has been incurred by these preparation step
 
 ## Verified versus pending
 
+- Follow-up direct audit 30/10 at 11:51 UTC: Controller SSH available again;
+  nova-compute up, both OVN agents alive, gateway service active, br-ex retains
+  172.24.4.1/24 after boot. RAM available about 2.4 GiB inside the Ubuntu guest.
+  No aggregate or second Compute. VPN query failed because Tailscale is absent.
+  This follow-up supersedes the earlier timeout below; no VPN/EC2 has been added.
+- Exact installed source revisions from that follow-up:
+  DevStack `9b0a00865c2537338f72ed5b9b44a0d6bff16eb4`,
+  Nova `94de0576ca02e0668233bedfbe7e18b87316c708`,
+  Neutron `0d3e8e65b0c5171c654dcf2fca78bdd1b09b6107`,
+  Placement `8e91e4d7aad1c6a642f80ec6387ce08d86f7c26d`,
+  requirements `9edc04289eca1a4c18ae86e4430416d82a5b07fa`.
 - Last direct local audit, 28/10: Ubuntu 24.04.5, DevStack master 9b0a0086,
   Nova KVM, OVN/Geneve, Controller and one local Compute up; no host aggregates.
 - 30/10 SSH to 192.168.228.128 timed out. Current Controller availability and
@@ -79,7 +90,7 @@ production/public firewall rules or VPN accounts were changed in this preparatio
 On Controller, run as stack, with this script copied to a known local path:
 
 ```bash
-python3 audit_controller.py --output /home/stack/tv1-controller-audit-NEW.json
+python3 audit_controller.py --output /opt/stack/tv1-controller-audit-NEW.json
 ```
 
 All commands are fixed read-only queries, with timeouts and generic errors. The
