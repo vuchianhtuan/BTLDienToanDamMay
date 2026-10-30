@@ -1,0 +1,14 @@
+[Unit]
+Description=Route existing DevStack Controller address over Tailscale on Compute 2
+Requires=tailscaled.service
+After=tailscaled.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/compute2-controller-dnat
+RemainAfterExit=yes
+Restart=on-failure
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target
