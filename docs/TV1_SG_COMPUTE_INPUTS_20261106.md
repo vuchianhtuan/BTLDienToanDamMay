@@ -61,3 +61,12 @@ VM thử đề xuất CirrOS image active `67ee0ba4-6d26-4d28-992b-f0932b8fa202`
 Rollback nodeSingapore: dừng nova-compute/metadata/ovn-controller mới, giữdisk/log, thu hồi credential node; chỉ gỡ service/chassis/Placement đúngID sau khi không còn instance/allocations. Không xóa theo hostname, không đụng Compute2/AppB, không restore DB cho một lỗi đăng ký. Rollback underlay theo TV1_UNDERLAY_OPENVPN_20261106.md; database dump đã tạo nhưng chưa restore drill toàncụm. Mọi node mới phải giữ SSH dự phòng AWS.
 
 Lệnh đã dùng: endpoint list; role assignment list (khôngtoken); mysql SELECT uuid,name,disabled FROM nova_api.cell_mappings qua filedefaultsprivate; rabbitmqctl list_vhosts/list_permissions; configparser chỉ chọn trường antoàn, transportURL được tách bỏpassword; importlib.metadata.version từ venvCompute3; quota show --compute --usage admin; hypervisor/server/networkagent list.
+
+## Chuẩn bị credential riêng (06/11, chưa bàn giao)
+Đã tạo Keystone user nova-sg ID8fb98900d77b44c4addf459fcc13fc6f trong project service, chỉ role service. Xác thực Keystone đạt, GET Placement/resource_providers và Neutron/v2.0/ports đều HTTP200 tạiController; chưa test mutation/compute workflow. Rabbit usernova-sg chỉ vhostnova_cell1 (configure/write/read .* trong vhost), AMQP authđạt; không có quyềnvhost/. Chưa thêmadmin.
+
+Gói root-only /root/tv1-sg-service/singapore-compute-private.tar.gz đã đối chiếu byte archive, chứa nova-cpu.conf, metadata agentini và README-PRIVATE. Không có SQL/admin password. SHA2563c6ff4f8f1f59371b81a6a447f1b7ddd4de6804e05cbd73095e305a03a795030. Chưa chuyển gói choTV3, chưa mở lại tài khoản tải và chưa startSingapore.
+
+Chưa tìm thấy metadata_proxy_shared_secret được đặt rõ trong fileNova/NeutronController; WSGImodule nova.wsgi.metadata:application. Gói không tự bịa hoặc đổi sharedsecret; cần đối chiếu effectiveWSGIconfig và metadataagent trước nghiệmthu. Đề xuất trước đó nói chuyển HMAC phù hợp chỉ áp dụng khi xác định rõ giá trị/cấu hình đang dùng. READMEgói ghiđiểm chặn này. Không coi gói là càiđặt productionhoànchỉnh.
+
+Đã xin người dùng xác nhận riêng trước khi cấp credentialdịch vụ quaSSHkey/IPgiớihạn; xác nhận chia sẻ VPNtrước không tự mở phạmvi quyềnOpenStack.
