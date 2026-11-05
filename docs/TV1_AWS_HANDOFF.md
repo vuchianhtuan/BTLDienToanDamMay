@@ -1,5 +1,7 @@
 # TV1 → TV3: tiếp nhận cụm AWS ngày 31/10/2026
 
+> Cập nhật 05/11: xem [baseline và phương án khảo sát Singapore](TV1_SINGAPORE_BASELINE_20261105.md) trước khi thao tác. Public IP Controller hiện là `15.135.67.242` (IP 31/10 bên dưới là lịch sử); App B hiện SHUTOFF. Controller và hai Compute đã tham gia tailnet cá nhân nhóm với IP ghi trong baseline mới. Chưa đăng ký Compute Singapore vào Nova/OVN.
+
 Controller và hai Compute đã chuyển sang AWS. Controller laptop `192.168.228.128` đã tắt; kiểm tra hạ tầng và App B sau đó đều đạt. Pull repo chỉ lấy tài liệu/code, không tự tạo hay cấu hình lại các máy đang chạy.
 
 ## Máy và AZ hiện tại
