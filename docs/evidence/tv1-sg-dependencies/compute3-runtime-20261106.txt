@@ -1,0 +1,15 @@
+9edc04289eca1a4c18ae86e4430416d82a5b07fa
+Python 3.12.3
+pip 26.2.2 from /opt/stack/data/venv/lib/python3.12/site-packages/pip (python 3.12)
+service-identity 24.1.0 requires pyasn1-modules, which is not installed.
+libvirt-clients	10.0.0-2ubuntu8.19
+libvirt-daemon-system	10.0.0-2ubuntu8.19
+libvirt-dev:amd64	10.0.0-2ubuntu8.19
+libvirt0:amd64	10.0.0-2ubuntu8.19
+python3-libvirt	10.0.0-1build1
+qemu-system-x86	1:8.2.2+ds-0ubuntu1.18
+Compiled against library: libvirt 10.0.0
+Using library: libvirt 10.0.0
+Using API: QEMU 10.0.0
+Running hypervisor: QEMU 8.2.2
+
