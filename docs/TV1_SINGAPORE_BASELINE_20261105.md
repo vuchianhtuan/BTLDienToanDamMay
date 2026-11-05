@@ -130,3 +130,13 @@ Compute 2 unit tv1-geneve-c2-peerwait: READY 23:51:42.713, nhận frame peer 23:
 Cleanup 23:56:11.438 exit 0; unit Result=success, ExecMainStatus=0. Kiểm tra không còn gnv-tv1-test và route 198.18.173.0/30; nova-compute/ovn-controller vẫn active.
 
 TV3 báo Singapore READY 23:55:32.265; ba vòng 23:55:40.265–42.409, 46.409–48.509, 52.510–54.608 đều 3/3; cleanup 23:56:10.617 exit 0 và kiểm tra không còn interface/route. Các vòng hai phía đều nằm trong khoảng cả hai tunnel hoạt động. Chốt đạt phép thử Geneve kernel IPv4 DF1200/UDP6082 trên cặp C2–Singapore trong phiên này, không suy rộng thành OVN/DHCP/metadata/VM-to-VM hoặc benchmark dài hạn. Compute 3 chưa thử liên vùng với Geneve thật.
+
+### Lượt Compute 3 ↔ Singapore đã có overlap xác nhận (06/11)
+C3 READY 23:58:31.311 ngày 05/11, nhận frame peer 00:00:04.042 ngày 06/11. Ba vòng phía C3, giờ Việt Nam:
+- 00:00:04.042–00:00:06.188: 3/3; RTT 139,515–140,469 ms.
+- 00:00:10.189–00:00:12.288: 3/3; RTT 93,622–94,007 ms.
+- 00:00:16.288–00:00:18.389: 3/3; RTT 93,717–93,913 ms.
+C3 cleanup 00:00:34.402, exit 0; unit Result=success/ExecMainStatus=0, interface/route thử không còn, nova-compute/ovn-controller active. Đã dừng unit tcpdump tạm sau thu thập.
+TV3 báo Singapore READY 23:59:55.327, ba vòng 00:00:03.328–05.471, 09.471–11.571, 15.571–17.670 đều 3/3; cleanup 00:00:33.681 exit 0 và không còn interface/route. Tất cả vòng hai phía nằm trong thời gian tunnel đối ứng tồn tại.
+Capture tailscale0 C3 thấy UDP6082 hai chiều, payload UDP length 1222 cho gói IPv4 inner1200 (kernel Geneve cơ bản không có OVN options). Không suy ra overhead thực tế OVN chỉ từ bài này.
+Chốt cả hai cặp Singapore–C2 và Singapore–C3 đạt Geneve kernel cách ly IPv4 DF1200/UDP6082 ở các phiên ghi nhận. Chưa có OVN/UDP6081 valid encapsulation, DHCP/metadata, VM-to-VM, tải dài hạn hay rollback database. Không cần lặp lại bài ping này trừ khi topology/policy thay đổi hoặc có lỗi mới.
