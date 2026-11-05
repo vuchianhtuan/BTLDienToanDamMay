@@ -121,3 +121,12 @@ Script có thêm `--wait-peer-seconds 900`: tạo tunnel riêng, giữ tối đa
 Đầu Sydney dùng --side a --wait-peer-seconds 900; Singapore dùng --side b như trước (không thêm wait ở cả hai phía vì sẽ cùng chờ). Unit transient RuntimeMaxSec=1020, không enable tự chạy khi reboot. Có thể dừng đúng unit bằng systemctl stop, SIGTERM chạy cleanup; luôn kiểm tra interface/route đã dọn sau đó. Không dùng SIGKILL. Thư mục script trên host /root/tv1-geneve-probes, log trong journal unit tv1-geneve-c2-peerwait. Máy hết hạn phải kiểm tra trạng thái trước phiên tiếp; không coi unit failed do hết thời gian chờ là lỗi mạng.
 
 Lượt 23:42–23:47 trước đó không có overlap: C2 READY 23:42:13.735, cleanup 23:45:15.004, Singapore READY 23:47:05.647. Không sử dụng các vòng lỗi lượt đó để kết luận đường truyền thất bại.
+
+### Lượt Compute 2 ↔ Singapore đã có overlap xác nhận (23:55)
+Compute 2 unit tv1-geneve-c2-peerwait: READY 23:51:42.713, nhận frame peer 23:55:41.078. Ba vòng:
+- 23:55:41.078–23:55:43.225: 3/3, RTT 140,535–141,272 ms.
+- 23:55:47.225–23:55:49.324: 3/3, RTT 93,971–94,060 ms.
+- 23:55:53.324–23:55:55.424: 3/3, RTT 93,763–94,106 ms.
+Cleanup 23:56:11.438 exit 0; unit Result=success, ExecMainStatus=0. Kiểm tra không còn gnv-tv1-test và route 198.18.173.0/30; nova-compute/ovn-controller vẫn active.
+
+TV3 báo Singapore READY 23:55:32.265; ba vòng 23:55:40.265–42.409, 46.409–48.509, 52.510–54.608 đều 3/3; cleanup 23:56:10.617 exit 0 và kiểm tra không còn interface/route. Các vòng hai phía đều nằm trong khoảng cả hai tunnel hoạt động. Chốt đạt phép thử Geneve kernel IPv4 DF1200/UDP6082 trên cặp C2–Singapore trong phiên này, không suy rộng thành OVN/DHCP/metadata/VM-to-VM hoặc benchmark dài hạn. Compute 3 chưa thử liên vùng với Geneve thật.
