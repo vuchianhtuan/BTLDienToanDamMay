@@ -1,5 +1,7 @@
 # Đầu vào Compute Singapore — 06/11/2026
 
+> Cập nhật mới: đã tạo user riêng và chuẩn bị gói dịch vụ; người dùngTV1 đã đồng ý cấp choTV3. Kênh tải đang mở qua account `tv3-compute-config`, không phải accountVPN đãthu hồi. Các mục dưới ghi “chưa tạo” là trạng thái khảo sát trước; xem phần cuối để lấy trạng thái mới nhất.
+
 Đã kiểm tra trực tiếp trên Controller và Compute 3 đang chạy. Đây là đầu vào chuẩn bị, không phải bộ cài đã nghiệm thu. Singapore chưa có nova-compute/OVN hoạt động trong cụm. Không chạy stack/unstack/clean.sh trên Controller.
 
 ## Endpoint/catalog và cell
@@ -70,3 +72,18 @@ Gói root-only /root/tv1-sg-service/singapore-compute-private.tar.gz đã đối
 Chưa tìm thấy metadata_proxy_shared_secret được đặt rõ trong fileNova/NeutronController; WSGImodule nova.wsgi.metadata:application. Gói không tự bịa hoặc đổi sharedsecret; cần đối chiếu effectiveWSGIconfig và metadataagent trước nghiệmthu. Đề xuất trước đó nói chuyển HMAC phù hợp chỉ áp dụng khi xác định rõ giá trị/cấu hình đang dùng. READMEgói ghiđiểm chặn này. Không coi gói là càiđặt productionhoànchỉnh.
 
 Đã xin người dùng xác nhận riêng trước khi cấp credentialdịch vụ quaSSHkey/IPgiớihạn; xác nhận chia sẻ VPNtrước không tự mở phạmvi quyềnOpenStack.
+
+## Nhận gói dịch vụ sau khi TV1 cho phép
+
+TV1 đã đồng ý rõ cấp gói choTV3. Account `tv3-compute-config` chỉ có forced-command tải `/root/tv1-sg-service/singapore-compute-private.tar.gz`, không shell/PTY/forwarding; public keyTV3 đãcungcấp, nguồn1.55.109.159 hoặc100.108.40.36. Sudoers chỉ cho cat đúngfile. Đã thử chuỗi quyền đọc dưới user này và hashkhớp; chưa thử đăng nhập bằng privatekeyTV3 (TV1 không cókeyđó). Thu hồi account sau khiTV3 nhận xong.
+
+Từ máy giữ privatekeyTV3, dùng công cụ giữ nguyên byte, lưu ngoài repo:
+```bash
+umask 077
+ssh -T -i /path/to/tv3-private-key tv3-compute-config@15.135.67.242 > singapore-compute-private.tar.gz
+sha256sum singapore-compute-private.tar.gz
+```
+Hash nguồn:
+`3c6ff4f8f1f59371b81a6a447f1b7ddd4de6804e05cbd73095e305a03a795030`
+
+Đối chiếu fingerprint Controller như tài liệu underlay. PowerShell5.1 không dùng redirection text cho tar.gz; dùng SSH client/tool hoặc Python subprocess stdout binary. Không gửi file/nội dung quaGit/chat. File có password dịch vụ riêng và quyền role service; không có SQL/adminpassword. Gói không tự cài/start bất kỳ dịch vụ nào. Đọc README-PRIVATE trước khi đặt config; xử lý điểm metadata/cấu hình effective rồi mới nghiệmthu. Không tự dùng gói này làm cấu hình Controller hoặc thay cấu hình Sydney.
