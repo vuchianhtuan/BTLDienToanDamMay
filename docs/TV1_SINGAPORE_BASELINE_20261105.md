@@ -140,3 +140,14 @@ C3 cleanup 00:00:34.402, exit 0; unit Result=success/ExecMainStatus=0, interface
 TV3 báo Singapore READY 23:59:55.327, ba vòng 00:00:03.328–05.471, 09.471–11.571, 15.571–17.670 đều 3/3; cleanup 00:00:33.681 exit 0 và không còn interface/route. Tất cả vòng hai phía nằm trong thời gian tunnel đối ứng tồn tại.
 Capture tailscale0 C3 thấy UDP6082 hai chiều, payload UDP length 1222 cho gói IPv4 inner1200 (kernel Geneve cơ bản không có OVN options). Không suy ra overhead thực tế OVN chỉ từ bài này.
 Chốt cả hai cặp Singapore–C2 và Singapore–C3 đạt Geneve kernel cách ly IPv4 DF1200/UDP6082 ở các phiên ghi nhận. Chưa có OVN/UDP6081 valid encapsulation, DHCP/metadata, VM-to-VM, tải dài hạn hay rollback database. Không cần lặp lại bài ping này trừ khi topology/policy thay đổi hoặc có lỗi mới.
+
+## Phiên kiểm tra OVN encap thật và rollback (06/11)
+Theo yêu cầu tự quyết của TV1, đã thử chuyển ovn-encap-ip trên Controller/C2/C3 sang lần lượt 100.127.44.18/100.102.196.94/100.102.48.51, giữ nguyên MTU1442. Mỗi host có rollback script root-only /root/tv1-sg-encap-20261106/rollback.sh và timer tự hoàn tác8phút. Trước thử, LB ACTIVE/ONLINE, management ping đạt.
+
+Controller đã tạo MySQL dump bằng mysqldump --defaults-extra-file=/opt/stack/.my.cnf --all-databases --single-transaction --quick --routines --events --triggers, lưu root-only /root/tv1-sg-integration-20261106/databases-private.sql.gz, gzip -t đạt. Không tải secret khỏi máy. Đây là dump giao dịch, không chứng minh nhất quán các bảng nontransactional hoặc diễn tập restore database.
+
+Sau chuyển: OVN SB thấy đúng 3 encap VPN; agents UP, management ping gói1200 đạt3/3, TCP9443 tới amphora đạt, LB vẫn ONLINE. Nhưng ping DF1442 trên mạng quản trị tới amphora báo Frag needed MTU1222 và thất bại3/3. Vì giữ yêu cầu không hạ MTU amphora/tenant hiện tại (có IPv6), quyết định không giữ thay đổi này.
+
+Đã chạy rollback ở cả3node, encap khôi phục 172.31.47.27/172.31.1.199/172.31.9.62; dừng cả3timer; flush PMTU cache controller. Ping DF1442 quản trị sau khôi phục đạt3/3, hai hypervisor up, LB ACTIVE/ONLINE. App B SHUTOFF. Đã diễn tập riêng rollback encap thực tế; chưa diễn tập restore toàn cụm/database.
+
+Kết luận triển khai: không thêm node Singapore vào underlay Tailscale1280 của cụm dual-stack/management1442 theo cách đổi toàn bộ encap. Cần một underlay đủ MTU hoặc một lab IPv4 riêng có miền tunnel tách biệt; chỉ tạo tenant IPv4 mới không tự tách transport của chassis. Không hạ hàng loạt MTU mạng hiện có hay bỏ IPv6 để vượt kiểm tra. Chưa đăng ký Singapore.
