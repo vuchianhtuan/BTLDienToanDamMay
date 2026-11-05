@@ -94,3 +94,15 @@ TV3 cung cấp commit/dependency thực tế node, subnet/route/SG, quyền cài
 Dừng nếu không có mesh và MTU được test, baseline/khôi phục chưa chứng minh, controller thiếu RAM/disk/quota, Agent hoặc workload hiện hữu lỗi, tunnel/metadata không ổn định, CIDR trùng, policy/credential không rõ, chi phí chưa chốt. Đo lại đường trực tiếp/DERP, MTU và ping trước phiên; việc chuyển node sang Tailscale có thể đổi đường quản trị và ảnh hưởng cả tenant/amphora.
 
 Tham khảo: [cấu hình Geneve Neutron](https://docs.openstack.org/neutron/2025.1/configuration/ml2-conf.html), [DevStack multinode](https://docs.openstack.org/devstack/2026.1/guides/multinode-lab.html).
+
+## Geneve cách ly đã chuẩn bị
+
+Bộ thử: `scripts/tv1_geneve_probe.py`. Tạo đúng một interface kernel `gnv-tv1-test`, VNI 730017, UDP6082, CIDR benchmark 198.18.173.0/30, MTU1200; không gắn bridge/OVS hay sửa cấu hình Nova/OVN. Từ chối interface/CIDR trùng; finally thu dọn, bắt SIGTERM/SIGINT. Nếu tiến trình bị SIGKILL hay host mất điện thì finally không chạy; phải kiểm tra và dọn interface có đúng quyền sở hữu trước khi thử lại.
+
+Chạy trước giữa Compute 2 và 3 trên Tailscale: mỗi chiều hai vòng đầu ping 3/3 gói IPv4 DF tổng 1200 byte; vòng cuối C2→C3 3/3, chiều C3→C2 2/3 khi hai phía kết thúc lệch giờ. Cả hai cleanup trả 0. Không kết luận mất gói do mạng hay kết luận benchmark ổn định; script được bổ sung thời gian giữ tunnel cuối phiên để tránh peer dọn sớm. Chưa chạy Singapore và không dùng kết quả này thay cho Geneve OVN/UDP6081.
+
+Trên Singapore, sau khi đối chiếu route/CIDR không trùng, thực hiện trong phiên cùng TV1 (TV1 chạy đầu đối ứng):
+```bash
+sudo python3 scripts/tv1_geneve_probe.py --peer 100.102.196.94 --side b
+```
+Đầu Sydney C2 dùng `--peer 100.108.40.36 --side a`. Chỉ chạy một cặp mỗi lần; khi kết thúc kiểm tra `ip link show gnv-tv1-test` không còn. Sau C2 mới thử C3 với IP 100.102.48.51. Không đổi port sang 6081 trên host đang có OVN. UDP6082 cần được policy cho phép ở cả hai đầu; bài UDP6081 trước không chứng minh quyền UDP6082.
