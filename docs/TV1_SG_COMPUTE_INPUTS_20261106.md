@@ -87,3 +87,10 @@ Hash nguồn:
 `3c6ff4f8f1f59371b81a6a447f1b7ddd4de6804e05cbd73095e305a03a795030`
 
 Đối chiếu fingerprint Controller như tài liệu underlay. PowerShell5.1 không dùng redirection text cho tar.gz; dùng SSH client/tool hoặc Python subprocess stdout binary. Không gửi file/nội dung quaGit/chat. File có password dịch vụ riêng và quyền role service; không có SQL/adminpassword. Gói không tự cài/start bất kỳ dịch vụ nào. Đọc README-PRIVATE trước khi đặt config; xử lý điểm metadata/cấu hình effective rồi mới nghiệmthu. Không tự dùng gói này làm cấu hình Controller hoặc thay cấu hình Sydney.
+
+## Đã nhận gói và xác định metadata (06/11)
+TV3 xác nhận hashgói khớp, lưu root-only0600. TV1 đã khóa/hết hạn account tv3-compute-config, gỡ authorized_keys và sudoers, lưu bản chứng cứ root-only. Không đổi/thu hồi user Keystone/Rabbit nova-sg; account tảifile đã hết hiệu lực.
+
+Kiểm tra mã Nova đang chạy: /opt/stack/nova/nova/wsgi/metadata.py gọi wsgi_app.init_application; /opt/stack/nova/nova/api/openstack/wsgi_app.py mặc định CONFIG_FILES=['api-paste.ini','nova.conf'], OS_NOVA_CONFIG_DIR mặc định/etc/nova. Process master726 không có OS_NOVA_CONFIG_DIR/FILES; uwsgi module nova.wsgi.metadata:application, không pyargv đổifile. nova.conf có neutron.service_metadata_proxy=True, không đặt rõ metadata_proxy_shared_secret; default trong nova/conf/neutron.py là emptystring. Agent C3 /etc/neutron/neutron_ovn_metadata_agent.ini cũng không đặtsecret và giátrị fallbackempty; nova_metadata_host172.31.47.27. GóiSingapore bỏsecret để dùngdefaulttươngứng, không có một HMAC riêng còn chờchia sẻ.
+
+Không coi việc khớp mặc địnhempty là nghiệmthu bảo mật. Chưa xoay HMAC vì sẽ phải đồng bộ Controller và toàn bộ agent, có thể giánđoạn metadata. Để kiểm tra chức năng node mới có thể giữ cấu hình hiện hành trong lab; phải test UUID/publickey/userdata metadata đúng VM. Muốn hardenHMAC cần phiên thay đổi riêng, secret mới qua kênh an toàn, backup/rollback config và cập nhật đồng thời agents; không tự đổi chỉ ở Singapore.
