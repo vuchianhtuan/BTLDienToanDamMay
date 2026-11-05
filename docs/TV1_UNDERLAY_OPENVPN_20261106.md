@@ -1,5 +1,9 @@
 # Underlay MTU1500 cho Singapore — 06/11/2026
 
+> Cập nhật sau bàn giao: Singapore đã kết nối10.253.239.4. Tài khoản tải `tv3-underlay` đã bị khóa/hết hạn, gỡ authorized_keys và sudoers sau khiTV3 xác nhận checksum; các lệnh tải bên dưới chỉ ghi lịch sử, không còn dùng được. Chứng chỉ VPN không bị thu hồi.
+
+TV1 xác nhận từ Controller, Compute2 và Compute3 tới Singapore: mỗi nguồn ping DF1500 đạt3/3, RTT khoảng94–108ms. TV3 xác nhận chiều ngược mỗi đích3/3, route172.31.47.27/32 qua VPN, default route/SSH vẫn qua AWS; TCP80/5672/6642/8775 bắt tay được nhưng chưa xác thực dịch vụ. Hai ComputeSydney up, LB ACTIVE/ONLINE. Singapore VPN active nhưng chưa enable khi boot; chưa có Nova/OVN, DHCP/metadata/VM-to-VM tạiSingapore.
+
 ## Trạng thái đã thay đổi
 OpenVPN/TCP chạy bên trong Tailscale, tun MTU1500. Server chỉ bind `100.127.44.18:1194/TCP`, không mở1194 ra Internet. TLS/chứng chỉ riêng từng client, client-to-client bật, không push default route hay DNS. Đây là hub: server giải mã/định tuyến giữa client, không phải mesh end-to-end. Có double encryption/head-of-line blocking; chưa benchmark dài hạn.
 
