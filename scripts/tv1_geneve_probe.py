@@ -5,6 +5,7 @@ Use UDP 6082 because production OVN already owns 6081. This does not validate
 OVN options, tenant DHCP, metadata, production port policy, or VM traffic.
 """
 import argparse
+import datetime
 import ipaddress
 import os
 import signal
@@ -14,6 +15,7 @@ import time
 p = argparse.ArgumentParser()
 p.add_argument('--peer', required=True)
 p.add_argument('--side', choices=['a', 'b'], required=True)
+p.add_argument('--rounds', type=int, choices=range(1, 21), default=3)
 args = p.parse_args()
 peer = ipaddress.IPv4Address(args.peer)
 if peer not in ipaddress.IPv4Network('100.64.0.0/10'):
@@ -28,6 +30,9 @@ if args.side == 'b':
 
 def run(*argv, **kwargs):
     return subprocess.run(argv, text=True, capture_output=True, timeout=20, **kwargs)
+
+def utc():
+    return datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='milliseconds')
 
 if run('ip', 'link', 'show', name).returncode == 0:
     raise SystemExit('STOP: test interface already exists; inspect ownership first')
@@ -57,12 +62,14 @@ try:
     run('ip', 'link', 'set', name, 'mtu', '1200', check=True)
     run('ip', 'addr', 'add', local + '/30', 'dev', name, check=True)
     run('ip', 'link', 'set', name, 'up', check=True)
-    print('READY', name, local, 'peer', peer, 'UDP6082 MTU1200', flush=True)
+    print('READY_UTC', utc(), name, local, 'peer', peer, 'UDP6082 MTU1200', flush=True)
     time.sleep(8)
-    for attempt in range(3):
+    for attempt in range(args.rounds):
+        started = utc()
         result = run('ping', '-I', name, '-c', '3', '-W', '2', '-M', 'do',
                      '-s', '1172', remote)
-        print('ATTEMPT', attempt + 1, 'EXIT', result.returncode,
+        print('ATTEMPT', attempt + 1, 'START_UTC', started,
+              'END_UTC', utc(), 'EXIT', result.returncode,
               result.stdout, result.stderr, flush=True)
         passed = passed or result.returncode == 0
         time.sleep(4)
@@ -71,7 +78,7 @@ try:
 finally:
     if created:
         result = run('ip', 'link', 'delete', name)
-        print('CLEANUP_EXIT', result.returncode, flush=True)
+        print('CLEANUP_UTC', utc(), 'CLEANUP_EXIT', result.returncode, flush=True)
         if result.returncode:
             raise SystemExit('Cleanup failed; inspect gnv-tv1-test before retry')
 if not passed:

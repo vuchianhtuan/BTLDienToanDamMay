@@ -106,3 +106,11 @@ Trên Singapore, sau khi đối chiếu route/CIDR không trùng, thực hiện 
 sudo python3 scripts/tv1_geneve_probe.py --peer 100.102.196.94 --side b
 ```
 Đầu Sydney C2 dùng `--peer 100.108.40.36 --side a`. Chỉ chạy một cặp mỗi lần; khi kết thúc kiểm tra `ip link show gnv-tv1-test` không còn. Sau C2 mới thử C3 với IP 100.102.48.51. Không đổi port sang 6081 trên host đang có OVN. UDP6082 cần được policy cho phép ở cả hai đầu; bài UDP6081 trước không chứng minh quyền UDP6082.
+
+### Lượt Compute 2 ↔ Singapore khoảng 23:35–23:37
+- TV1 chạy đầu C2 20 vòng; vòng 7 đạt 3/3 nhưng RTT cao, vòng 8–13 mỗi vòng 3/3 với RTT khoảng 94–95 ms; vòng 1–6 và 14–20 không nhận trả lời.
+- TV3 báo journal Singapore READY 23:35:27, kết thúc 23:36:05; 3 vòng × 3/3 gói IPv4 DF 1200 byte, cleanup 0, interface/route đã dọn.
+- Script TV1 lúc chạy chưa ghi timestamp mỗi vòng. Không có căn cứ đối chiếu chính xác vòng lỗi với khoảng overlap; không kết luận các lỗi đều ngoài thời gian overlap, không tái dựng timestamp từ độ dài sleep/ping.
+- TV1 quan sát tunnel còn tồn tại lúc 23:36:50, sau đó cleanup 0; kiểm tra lúc 23:37:33 interface đã mất, Nova/OVN active.
+- Đã chứng minh một số vòng Geneve thật UDP6082/MTU1200 hai chiều; chưa chứng minh ổn định toàn phiên, chưa phải Geneve OVN hay VM-to-VM.
+- Script mới có READY_UTC, START_UTC/END_UTC từng vòng và CLEANUP_UTC; hỗ trợ --rounds 1..20 thay vì sửa code tạm. Hai bên phải cập nhật cùng commit trước lượt tiếp; dùng journal hoặc tee ở thư mục private, đối chiếu UTC/NTP và lưu log đủ.
