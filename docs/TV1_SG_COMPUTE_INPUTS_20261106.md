@@ -94,3 +94,19 @@ TV3 xác nhận hashgói khớp, lưu root-only0600. TV1 đã khóa/hết hạn 
 Kiểm tra mã Nova đang chạy: /opt/stack/nova/nova/wsgi/metadata.py gọi wsgi_app.init_application; /opt/stack/nova/nova/api/openstack/wsgi_app.py mặc định CONFIG_FILES=['api-paste.ini','nova.conf'], OS_NOVA_CONFIG_DIR mặc định/etc/nova. Process master726 không có OS_NOVA_CONFIG_DIR/FILES; uwsgi module nova.wsgi.metadata:application, không pyargv đổifile. nova.conf có neutron.service_metadata_proxy=True, không đặt rõ metadata_proxy_shared_secret; default trong nova/conf/neutron.py là emptystring. Agent C3 /etc/neutron/neutron_ovn_metadata_agent.ini cũng không đặtsecret và giátrị fallbackempty; nova_metadata_host172.31.47.27. GóiSingapore bỏsecret để dùngdefaulttươngứng, không có một HMAC riêng còn chờchia sẻ.
 
 Không coi việc khớp mặc địnhempty là nghiệmthu bảo mật. Chưa xoay HMAC vì sẽ phải đồng bộ Controller và toàn bộ agent, có thể giánđoạn metadata. Để kiểm tra chức năng node mới có thể giữ cấu hình hiện hành trong lab; phải test UUID/publickey/userdata metadata đúng VM. Muốn hardenHMAC cần phiên thay đổi riêng, secret mới qua kênh an toàn, backup/rollback config và cập nhật đồng thời agents; không tự đổi chỉ ở Singapore.
+
+## Điểm dừng trước đăng ký node — 06/11 khoảng01:21 giờ Việt Nam
+Theo báo cáoTV3: Singapore venvPython3.12, Nova34.1.0.dev1, Neutron29.1.0.dev16, libvirtbinding/daemon10.0.0; constraints ngoại lệ riêng, gốc khôngsửa; có pyasn1-modules và pipcheck sạch. Root-ownedvenv/source/helper; visudo đạt, neutronrootwrap đọcnamespace đạt, sudo trực tiếp/lệnh khôngfilter bịtừchối. Đây là bằngchứngTV3 cungcấp, TV1 chưa SSH trực tiếpSingapore đểđốichiếu.
+
+BaselineSydney certifi2023.11.17, pyasn1 0.4.8, service-identity24.1.0; Singapore báo khác certifi/pyasn1 nhưng chưa gửi sốversion/hash/requirements chi tiết. Không kếtluận cặpversion tươngthích chỉtừpipcheck hoặc ép hạ về baselineSydney đangthiếu dependency. Giữ góiSingapore hiện tại; phiênmai đốichiếu piplist/constraints hash, dependency markers của pyasn1-modules/service-identity và kiểm tra TLS trust/Keystone theo endpoint thực. Các package chỉcóSydney đánhgiá theochứcnăng, khôngcài cảsnapshot.
+
+01:21TV1 kiểm tra ControllerOpenVPN và NovaMetadataWSGI active; haihypervisorSydneyup, LB ACTIVE/ONLINE; AppB và CirrOSSHUTOFF, amphoraACTIVE. SingaporeNova/OVN/metadata inactive/masked theoTV3; chưa có nodeSingaporetronghypervisorlist.
+
+Chốt xong **chuẩn bị trước đăng ký**, chưanghiệmthu runtimenode/privseptoàndiện/metadataVM. Tiếp phiênmai:
+1. Bật/kiểm tra cácEC2 cầnthiết, cập nhật publicIP nếuđổi; VPN/route/MTU1500 hai chiều, trạngtháiSydney.
+2. Nhận sốversioncertifi/pyasn1/pyasn1-modules và hashfiles qua kênhkhôngsecret; đốichiếuconstraints vàpipcheck, kiểmtraruntimeimports.
+3. Kiểmtra rootwrap/privsep đúngcontext và metadata mặcđịnhempty khớphiệntrạng; khôngxoayHMAC mộtphía.
+4. Chỉtrongphiêntíchhợp mớiunmask/start OVN/metadata rồiNova; TV1discoverhost đúngcell1, tạoAZsg-test saukhixácminhhost.
+5. BootVM thử IPv4riêng; DHCP, metadataUUID/key/userdata, VM-to-VM; chưachuyểnAppB.
+
+Người dùng yêu cầu tạm dừng sau bước chuẩn bị. TV1 chưa tắt/dừngEC2 và không tựngầm hiểu tạmdừngcôngviệc là Stopinstance. Không có serviceSingapore nào đượcTV1start trong bước này.
