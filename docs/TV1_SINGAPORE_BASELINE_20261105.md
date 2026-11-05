@@ -114,3 +114,10 @@ sudo python3 scripts/tv1_geneve_probe.py --peer 100.102.196.94 --side b
 - TV1 quan sát tunnel còn tồn tại lúc 23:36:50, sau đó cleanup 0; kiểm tra lúc 23:37:33 interface đã mất, Nova/OVN active.
 - Đã chứng minh một số vòng Geneve thật UDP6082/MTU1200 hai chiều; chưa chứng minh ổn định toàn phiên, chưa phải Geneve OVN hay VM-to-VM.
 - Script mới có READY_UTC, START_UTC/END_UTC từng vòng và CLEANUP_UTC; hỗ trợ --rounds 1..20 thay vì sửa code tạm. Hai bên phải cập nhật cùng commit trước lượt tiếp; dùng journal hoặc tee ở thư mục private, đối chiếu UTC/NTP và lưu log đủ.
+
+### Phiên chờ peer — tránh lỗi phối hợp thời gian
+Script có thêm `--wait-peer-seconds 900`: tạo tunnel riêng, giữ tối đa 15 phút chờ RX frame đầu tiên của peer rồi mới bắt đầu ba vòng ping. READY/WAIT/PEER_FRAME/ATTEMPT/CLEANUP đều có UTC, lưu bằng systemd journal. RX frame chỉ là tín hiệu đồng bộ, không phải tự chứng minh connectivity đạt; phải xem kết quả ping hai phía và thời điểm overlap.
+
+Đầu Sydney dùng --side a --wait-peer-seconds 900; Singapore dùng --side b như trước (không thêm wait ở cả hai phía vì sẽ cùng chờ). Unit transient RuntimeMaxSec=1020, không enable tự chạy khi reboot. Có thể dừng đúng unit bằng systemctl stop, SIGTERM chạy cleanup; luôn kiểm tra interface/route đã dọn sau đó. Không dùng SIGKILL. Thư mục script trên host /root/tv1-geneve-probes, log trong journal unit tv1-geneve-c2-peerwait. Máy hết hạn phải kiểm tra trạng thái trước phiên tiếp; không coi unit failed do hết thời gian chờ là lỗi mạng.
+
+Lượt 23:42–23:47 trước đó không có overlap: C2 READY 23:42:13.735, cleanup 23:45:15.004, Singapore READY 23:47:05.647. Không sử dụng các vòng lỗi lượt đó để kết luận đường truyền thất bại.

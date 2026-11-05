@@ -16,7 +16,11 @@ p = argparse.ArgumentParser()
 p.add_argument('--peer', required=True)
 p.add_argument('--side', choices=['a', 'b'], required=True)
 p.add_argument('--rounds', type=int, choices=range(1, 21), default=3)
+p.add_argument('--wait-peer-seconds', type=int, default=0,
+               help='Wait for first received tunnel frame before probing (0..1200)')
 args = p.parse_args()
+if not 0 <= args.wait_peer_seconds <= 1200:
+    p.error('wait-peer-seconds must be between 0 and 1200')
 peer = ipaddress.IPv4Address(args.peer)
 if peer not in ipaddress.IPv4Network('100.64.0.0/10'):
     p.error('peer must be a Tailscale IPv4')
@@ -63,7 +67,21 @@ try:
     run('ip', 'addr', 'add', local + '/30', 'dev', name, check=True)
     run('ip', 'link', 'set', name, 'up', check=True)
     print('READY_UTC', utc(), name, local, 'peer', peer, 'UDP6082 MTU1200', flush=True)
-    time.sleep(8)
+    if args.wait_peer_seconds:
+        deadline = time.monotonic() + args.wait_peer_seconds
+        rx_path = '/sys/class/net/' + name + '/statistics/rx_packets'
+        print('WAIT_PEER_UTC', utc(), 'TIMEOUT_SECONDS', args.wait_peer_seconds, flush=True)
+        while True:
+            with open(rx_path) as stream:
+                received = int(stream.read())
+            if received > 0:
+                print('PEER_FRAME_UTC', utc(), 'RX_PACKETS', received, flush=True)
+                break
+            if time.monotonic() >= deadline:
+                raise SystemExit('Peer did not send a tunnel frame before deadline')
+            time.sleep(0.2)
+    else:
+        time.sleep(8)
     for attempt in range(args.rounds):
         started = utc()
         result = run('ping', '-I', name, '-c', '3', '-W', '2', '-M', 'do',
