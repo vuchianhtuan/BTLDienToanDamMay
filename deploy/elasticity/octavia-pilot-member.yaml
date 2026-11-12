@@ -1,0 +1,101 @@
+heat_template_version: 2018-08-31
+description: A private app with separate Octavia and shared-data interfaces.
+parameters:
+  pool_id: {type: string}
+  member_network_id: {type: string}
+  member_subnet_id: {type: string}
+  data_network_id: {type: string}
+  data_subnet_id: {type: string}
+  data_cidr: {type: string}
+  data_gateway: {type: string}
+  db_ip: {type: string}
+  swift_ip: {type: string}
+  security_group_id: {type: string}
+  image_id: {type: string}
+  flavor_id: {type: string}
+  availability_zone: {type: string}
+  container_image: {type: string}
+  app_env_b64: {type: string, hidden: true}
+
+resources:
+  member_port:
+    type: OS::Neutron::Port
+    properties:
+      network: {get_param: member_network_id}
+      fixed_ips: [{subnet: {get_param: member_subnet_id}}]
+      security_groups: [{get_param: security_group_id}]
+
+  data_port:
+    type: OS::Neutron::Port
+    properties:
+      network: {get_param: data_network_id}
+      fixed_ips: [{subnet: {get_param: data_subnet_id}}]
+      security_groups: [{get_param: security_group_id}]
+
+  boot:
+    type: OS::Heat::CloudConfig
+    properties:
+      cloud_config:
+        write_files:
+          - path: /etc/file-integrity/app.env
+            permissions: '0600'
+            encoding: b64
+            content: {get_param: app_env_b64}
+          - path: /usr/local/sbin/octavia-pilot-routes
+            permissions: '0700'
+            content:
+              str_replace:
+                template: |
+                  #!/bin/sh
+                  set -eu
+                  for attempt in $(seq 1 30); do
+                    dev=$(ip -o -4 addr show to 'DATA_CIDR' | awk 'NR == 1 {print $2}')
+                    if [ -n "$dev" ]; then break; fi
+                    sleep 2
+                  done
+                  test -n "$dev"
+                  ip route replace 'DB_IP/32' via 'DATA_GW' dev "$dev"
+                  ip route replace 'SWIFT_IP/32' via 'DATA_GW' dev "$dev"
+                params:
+                  DATA_CIDR: {get_param: data_cidr}
+                  DATA_GW: {get_param: data_gateway}
+                  DB_IP: {get_param: db_ip}
+                  SWIFT_IP: {get_param: swift_ip}
+          - path: /etc/systemd/system/octavia-pilot-routes.service
+            permissions: '0644'
+            content: |
+              [Unit]
+              Wants=network-online.target
+              After=network-online.target
+              [Service]
+              Type=oneshot
+              ExecStart=/usr/local/sbin/octavia-pilot-routes
+              RemainAfterExit=yes
+              [Install]
+              WantedBy=multi-user.target
+        runcmd:
+          - [systemctl, daemon-reload]
+          - [systemctl, enable, --now, octavia-pilot-routes]
+          - [systemctl, enable, --now, docker]
+          - [docker, run, --detach, --name, file-integrity, --restart, unless-stopped, --pull, never, --env-file, /etc/file-integrity/app.env, --publish, '8000:8000', {get_param: container_image}]
+
+  app:
+    type: OS::Nova::Server
+    properties:
+      image: {get_param: image_id}
+      flavor: {get_param: flavor_id}
+      availability_zone: {get_param: availability_zone}
+      networks:
+        - port: {get_resource: member_port}
+        - port: {get_resource: data_port}
+      user_data_format: RAW
+      user_data: {get_attr: [boot, config]}
+
+  member:
+    type: OS::Octavia::PoolMember
+    depends_on: app
+    properties:
+      pool: {get_param: pool_id}
+      address: {get_attr: [member_port, fixed_ips, 0, ip_address]}
+      subnet: {get_param: member_subnet_id}
+      protocol_port: 8000

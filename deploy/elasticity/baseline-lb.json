@@ -1,0 +1,126 @@
+{
+  "heat_template_version": "2018-08-31",
+  "description": "TV3: private HTTP LB for two existing App VMs. No VM or floating IP creation.",
+  "parameters": {
+    "vip_subnet_id": {
+      "type": "string",
+      "description": "Subnet UUID for the private VIP."
+    },
+    "member_subnet_id": {
+      "type": "string",
+      "description": "Subnet UUID containing App private addresses."
+    },
+    "client_cidr": {
+      "type": "string",
+      "description": "CIDR allowed to use the listener; routed lab/VPN clients only."
+    },
+    "app1_ip": {
+      "type": "string",
+      "description": "Existing App 1 private IPv4."
+    },
+    "app2_ip": {
+      "type": "string",
+      "description": "Existing App 2 private IPv4."
+    }
+  },
+  "resources": {
+    "loadbalancer": {
+      "type": "OS::Octavia::LoadBalancer",
+      "properties": {
+        "vip_subnet": {
+          "get_param": "vip_subnet_id"
+        }
+      }
+    },
+    "listener": {
+      "type": "OS::Octavia::Listener",
+      "properties": {
+        "loadbalancer": {
+          "get_resource": "loadbalancer"
+        },
+        "protocol": "HTTP",
+        "protocol_port": 80,
+        "allowed_cidrs": [
+          {
+            "get_param": "client_cidr"
+          }
+        ]
+      }
+    },
+    "pool": {
+      "type": "OS::Octavia::Pool",
+      "properties": {
+        "listener": {
+          "get_resource": "listener"
+        },
+        "protocol": "HTTP",
+        "lb_algorithm": "ROUND_ROBIN"
+      }
+    },
+    "monitor": {
+      "type": "OS::Octavia::HealthMonitor",
+      "properties": {
+        "pool": {
+          "get_resource": "pool"
+        },
+        "type": "HTTP",
+        "http_method": "GET",
+        "url_path": "/health/ready",
+        "expected_codes": "200",
+        "delay": 5,
+        "timeout": 3,
+        "max_retries": 3
+      }
+    },
+    "member1": {
+      "type": "OS::Octavia::PoolMember",
+      "properties": {
+        "pool": {
+          "get_resource": "pool"
+        },
+        "address": {
+          "get_param": "app1_ip"
+        },
+        "subnet": {
+          "get_param": "member_subnet_id"
+        },
+        "protocol_port": 8000
+      }
+    },
+    "member2": {
+      "type": "OS::Octavia::PoolMember",
+      "properties": {
+        "pool": {
+          "get_resource": "pool"
+        },
+        "address": {
+          "get_param": "app2_ip"
+        },
+        "subnet": {
+          "get_param": "member_subnet_id"
+        },
+        "protocol_port": 8000
+      }
+    }
+  },
+  "outputs": {
+    "vip_address": {
+      "value": {
+        "get_attr": [
+          "loadbalancer",
+          "vip_address"
+        ]
+      }
+    },
+    "loadbalancer_id": {
+      "value": {
+        "get_resource": "loadbalancer"
+      }
+    },
+    "pool_id": {
+      "value": {
+        "get_resource": "pool"
+      }
+    }
+  }
+}
