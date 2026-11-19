@@ -15,7 +15,7 @@ $BaseUrl = $BaseUrl.TrimEnd('/')
 try {
     $ready = Invoke-RestMethod -Uri "$BaseUrl/health/ready" -TimeoutSec 15
     if ($ready.status -ne 'ready' -or $ready.storage -ne 'swift') { throw 'Expected a ready Swift-backed lab.' }
-    foreach ($path in @('/', '/assets/app.js', '/assets/styles.css')) {
+    foreach ($path in @('/', '/assets/api-client.js', '/assets/app.js', '/assets/styles.css')) {
         $response = Invoke-WebRequest -UseBasicParsing -Uri ($BaseUrl + $path) -TimeoutSec 15
         if ($response.StatusCode -ne 200) { throw "Asset unavailable: $path" }
     }
@@ -35,7 +35,16 @@ try {
             if ($rows.Count -gt 0) {
                 $fileId = [guid]::Parse([string]$rows[0].id).ToString()
                 $verified = Invoke-RestMethod -Method Post -Uri "$BaseUrl/api/files/$fileId/verify" -Headers $headers -TimeoutSec 45
-                if ($verified.intact -ne $true) { throw 'The existing file failed its integrity check.' }
+                $expected = $rows[0]
+                if ($verified.intact -isnot [bool] -or $verified.intact -ne $true -or
+                    [string]$verified.id -cne $fileId -or
+                    [string]$expected.sha256 -cnotmatch '^[0-9a-f]{64}$' -or
+                    [string]$verified.expected_sha256 -cne [string]$expected.sha256 -or
+                    [string]$verified.actual_sha256 -cne [string]$expected.sha256 -or
+                    $verified.expected_size -ne $expected.size -or
+                    $verified.actual_size -ne $expected.size) {
+                    throw 'The existing file verification did not match its metadata.'
+                }
                 Write-Host 'PASS: authenticated API and SHA-256 verification of one existing file.'
             } else {
                 Write-Host 'PASS: authenticated API. No existing file available to verify.'

@@ -2,7 +2,9 @@
 
 Luồng JSON gồm `kit.py`, các template JSON và `probe_http.py`. Hai file `octavia-pilot*.yaml` là bài thử riêng dùng pool hiện có và hai mạng của ứng dụng. Xem [bản bàn giao](../../docs/HANDOFF-20261112.md) để biết các kết quả đã xác minh và trình tự chạy tiếp.
 
-**Bộ JSON đã kiểm thử offline.** Canary staging đã tự co giãn theo CPU thật. Hai template YAML pilot đã qua xác thực Heat API. Chu kỳ autoscaling ứng dụng qua Octavia còn chờ chạy. Các lệnh `lint`, `plan`, `build` và unit test chạy được trên máy cá nhân với Python 3.12+.
+**Bộ JSON đã kiểm thử offline.** Hai template YAML pilot đã qua xác thực Heat API. [Biên bản 13/11](../../docs/evidence/autoscaling-acceptance-20261113.md) ghi lại chu kỳ tự động 2 → 3 → 2 của pilot trên pool Octavia hiện có. Các lệnh `lint`, `plan`, `build` và unit test chạy được trên máy cá nhân với Python 3.12+.
+
+Bộ YAML tại `templates/*.yaml` có topology, budget và tham số riêng. Xem [YAML_RUNBOOK.md](YAML_RUNBOOK.md) để tái lập bài thử đó với environment riêng.
 
 | Tệp | Vai trò |
 |---|---|

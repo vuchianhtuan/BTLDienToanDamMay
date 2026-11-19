@@ -7,6 +7,7 @@ COPY --chown=app:app app ./app
 COPY --chown=app:app frontend ./frontend
 COPY --chown=app:app tests ./tests
 COPY --chown=app:app loadtest ./loadtest
+COPY --chown=app:app deploy/elasticity ./deploy/elasticity
 USER app
 EXPOSE 8000
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-server-header"]

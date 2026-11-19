@@ -1,8 +1,11 @@
 .git
 .env
 deploy/app.env
+deploy/elasticity/private
+deploy/elasticity/evidence
 deploy/tv2/lab-access.json
 .venv
+.venv-tools
 __pycache__
 .pytest_cache
 data
@@ -16,3 +19,6 @@ test-results
 *.pem
 *.key
 .github
+deploy/elasticity/local
+**/*.env.json
+**/app.env

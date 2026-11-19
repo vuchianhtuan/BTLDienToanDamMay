@@ -1,5 +1,7 @@
 # Triển khai ứng dụng lên OpenStack sau giai đoạn local
 
+Phần TV3 về Octavia/Heat/Aodh, kiểm tra offline, thu bằng chứng và hợp đồng bàn giao nằm ở [elasticity/README.md](elasticity/README.md). Các template này chưa được kiểm chứng trên cụm thật.
+
 Đây là cấu hình ứng dụng, chưa phải bộ cài DevStack hoặc minh chứng hạ tầng. Chỉ thực hiện sau khi nhóm có VM và endpoint thật. Không chạy các thay đổi controller/network khi thành viên khác đang kiểm thử.
 
 Lab độc lập của TV2 đã được dựng và kiểm chứng trên một compute. Xem [hướng dẫn chạy, kiểm thử và những mục cần tích hợp tiếp](tv2/README.md). Các điều kiện hai Compute/AZ và Octavia bên dưới áp dụng cho cụm nhóm ở mốc tích hợp đầy đủ.
@@ -41,6 +43,8 @@ Không copy volume `file-data` local lên từng App VM để giả lập shared
 | Chi phí | Phần mềm/hạ tầng/thuê dịch vụ theo thực tế; ghi rõ phần không tính |
 
 ## Các phần hạ tầng còn phải triển khai
+
+Bộ chuẩn bị TV3 nằm trong [elasticity/](elasticity/README.md): template LB, hai nhóm VM theo AZ, alarm tùy chọn, kiểm tra offline và công cụ thu snapshot chỉ đọc. Các template này chưa được chạy trên OpenStack; dùng runbook để validate và triển khai từng bước sau khi có môi trường thật.
 
 - Chốt bản DevStack/OpenStack và plugin đồng bộ trên cả ba node.
 - Thử nested KVM, Tailscale, MTU và đường đi của floating IP tới người xem demo.

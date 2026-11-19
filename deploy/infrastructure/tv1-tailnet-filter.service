@@ -1,0 +1,12 @@
+[Unit]
+Description=Restrict shared-tailnet access to TV1 Controller
+Requires=tailscaled.service
+After=tailscaled.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/tv1-tailnet-filter
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -1,5 +1,9 @@
 # File Integrity System
 
+**Bản tích hợp TV3 + TV2 ngày 28/10:** xem [kết quả ghép, cách chạy qua tunnel và đầu vào còn thiếu](docs/TV3_TV2_INTEGRATION.md). Nhánh `integration/tv3-tv2-handoff-20261028` kết hợp hai bản bàn giao; chưa tự deploy lên lab.
+
+**Bản bàn giao TV3:** lấy nhánh `feat/tv3-handoff`, đọc [hướng dẫn lấy code và tích hợp cho thành viên/agent](docs/TV3_HANDOFF.md). Nhánh này đã ghép UI, Locust và bộ chuẩn bị elasticity; không cần lấy từng PR riêng.
+
 Repository của nhóm: [BTLDienToanDamMay](https://github.com/vuchianhtuan/BTLDienToanDamMay). Thành viên mới bắt đầu từ [CONTRIBUTING.md](CONTRIBUTING.md), [API contract](docs/API_CONTRACT.md) và [kết quả kiểm chứng local](docs/VERIFICATION.md).
 
 Agent triển khai hoặc chạy phần TV2 đọc duy nhất [AGENTS_TV2.md](AGENTS_TV2.md): điều kiện hạ tầng/quyền truy cập, triển khai code lên App VM, cấu hình, kiểm thử, rollback và checklist người quản lý lab.
@@ -26,6 +30,14 @@ Mở http://localhost:8000 để dùng giao diện; http://localhost:8000/docs �
 Upload một tệp rồi bấm Verify. Kết quả gồm SHA-256 gốc, SHA-256 tính lại từ nội dung và dung lượng. File rỗng cũng hợp lệ. Mặc định tối đa 25 MiB/tệp. Tên trùng không ghi đè tệp cũ.
 
 ## Kiểm thử và vận hành
+
+Frontend có bộ kiểm thử HTTP/clipboard chạy bằng Node.js 20+ (Node chỉ cần cho test, không cần để chạy ứng dụng):
+
+```powershell
+node --test tests/frontend/api-client.test.cjs
+```
+
+CI chạy bộ test này trước khi build Docker. Giao diện có timeout cho request; nếu upload mất kết nối, hãy làm mới danh sách trước khi thử lại vì server có thể đã nhận tệp. Không tự động gửi lại upload.
 
 ```powershell
 docker compose exec -T app python -m pytest tests -q -p no:cacheprovider
@@ -81,6 +93,8 @@ Thành viên muốn dùng lab đang chạy: sao chép `deploy/tv2/lab-access.exa
 
 Xem [hướng dẫn triển khai cụm nhóm](deploy/README.md). Cấu hình chạy app trên VM private có sẵn tại `deploy/compose.openstack.yaml`. Khi chuyển từ lab TV2 sang cụm chung, cần kiểm thử lại Swift/Cinder và hoàn thiện các minh chứng hai AZ, Octavia, monitoring và autoscaling.
 
+TV3 có thể chuẩn bị độc lập bằng [bộ Heat/Octavia/Aodh và kiểm tra offline](deploy/elasticity/README.md), cùng [kịch bản demo, sampler HTTP và bảng chi phí](docs/TV3_DEMO.md). Alarm mặc định tắt; template chưa được xác nhận trên cloud thật.
+
 **Không chạy nhiều App VM với storage local độc lập.** Các App VM phải cùng dùng Swift và cùng PostgreSQL; schema/storage không nằm trên từng app instance.
 
 ## Làm việc nhóm
@@ -110,6 +124,10 @@ Ba vùng làm việc đề xuất: hạ tầng/tích hợp ở `deploy/`; backen
 4. Trước khi tích hợp, ghi phiên bản OpenStack, IP/endpoint, dịch vụ đã hoạt động và kết quả kiểm tra vào tài liệu nhóm; không ghi secret.
 
 ## Tạo tải
+
+TV3 xem [hướng dẫn workload và báo cáo](loadtest/README.md), [tiến độ và các mốc tích hợp](docs/TV3_PROGRESS.md).
+
+Locust kiểm tra SHA-256/size khi download và nội dung verify, không chỉ HTTP 200. Fixture thiếu hoặc sai khiến run dừng với exit code 1. Có thể chạy riêng phần kiểm tra thuần Python bằng `python -m unittest discover -s tests/loadtest -v`.
 
 Upload ít nhất một tệp trước. Chạy Locust trên host của container app:
 

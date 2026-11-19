@@ -2,6 +2,7 @@
 __pycache__/
 .pytest_cache/
 .venv/
+.venv-tools/
 data/
 *.pyc
 test-results/
@@ -28,3 +29,7 @@ htmlcov/
 Thumbs.db
 .idea/
 .vscode/
+deploy/elasticity/private/
+deploy/elasticity/evidence/
+deploy/elasticity/local/
+**/*.env.json

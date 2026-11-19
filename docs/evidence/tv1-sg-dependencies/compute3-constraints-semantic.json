@@ -1,0 +1,7 @@
+{
+  "removed": {
+    "libvirt-python": "12.6.0"
+  },
+  "changed": {},
+  "added": {}
+}
