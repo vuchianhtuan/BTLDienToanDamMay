@@ -1,0 +1,4 @@
+http://10.0.0.26
+{"status":"ready","storage":"swift","max_file_bytes":26214400}
+SHA256 0341dcca4d64a4c75059dbe80bb3117435caf21884439d633a9c7676d898b5cd
+VERIFY intact=true
