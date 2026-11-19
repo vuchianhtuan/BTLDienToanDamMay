@@ -1,0 +1,9 @@
+{
+  "ec2_host": "EC2_HOST_OR_DNS",
+  "ssh_user": "ubuntu",
+  "ssh_key_path": "~/.ssh/btl_lab_ed25519",
+  "known_hosts_path": "",
+  "app_host": "10.42.0.21",
+  "app_port": 8000,
+  "local_port": 18000
+}

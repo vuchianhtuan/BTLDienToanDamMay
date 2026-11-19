@@ -1,0 +1,18 @@
+Executed on 2026-10-28 after integration report 2026-10-28T09:58:30Z.
+Environment: App VM 10.42.0.21, /srv/file-integrity/deploy.
+
+Command:
+sudo -n docker compose --env-file app.env -f compose.openstack.yaml exec -T app python -m pytest tests -q -p no:cacheprovider
+
+Captured result:
+.................                                                        [100%]
+=============================== warnings summary ===============================
+../usr/local/lib/python3.12/site-packages/starlette/testclient.py:37
+  DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+17 passed, 1 warning in 1.25s
+
+Command:
+sudo -n docker compose --env-file app.env -f compose.openstack.yaml exec -T app python tests/smoke_live.py
+
+Captured result:
+PASS: readiness, frontend assets, upload, PostgreSQL metadata, list, download, SHA-256 verify

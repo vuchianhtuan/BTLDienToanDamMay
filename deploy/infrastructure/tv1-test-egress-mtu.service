@@ -1,0 +1,12 @@
+[Unit]
+Description=TV1 test router return path MTU
+Requires=tv1-lab-network.service
+After=tv1-lab-network.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/ip route replace 172.24.4.117/32 dev br-ex mtu 1200
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

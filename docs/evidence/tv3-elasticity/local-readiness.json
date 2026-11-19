@@ -1,0 +1,85 @@
+{
+  "kind": "HTTP_READINESS_SAMPLES",
+  "target": "http://127.0.0.1:8000",
+  "expected_storage": "local",
+  "limitations": "Point samples only; no proof of continuous uptime, integrity or scaling cause.",
+  "summary": {
+    "samples": 10,
+    "failed_samples": 0,
+    "sampled_availability_percent": 100.0,
+    "max_consecutive_failed_samples": 0,
+    "p95_probe_latency_ms": 520.35
+  },
+  "records": [
+    {
+      "at_utc": "2026-10-28T09:43:47.380337+00:00",
+      "ready": true,
+      "http_status": 200,
+      "error": null,
+      "latency_ms": 354.26
+    },
+    {
+      "at_utc": "2026-10-28T09:43:48.734316+00:00",
+      "ready": true,
+      "http_status": 200,
+      "error": null,
+      "latency_ms": 215.58
+    },
+    {
+      "at_utc": "2026-10-28T09:43:49.950146+00:00",
+      "ready": true,
+      "http_status": 200,
+      "error": null,
+      "latency_ms": 520.35
+    },
+    {
+      "at_utc": "2026-10-28T09:43:51.470739+00:00",
+      "ready": true,
+      "http_status": 200,
+      "error": null,
+      "latency_ms": 157.43
+    },
+    {
+      "at_utc": "2026-10-28T09:43:52.628742+00:00",
+      "ready": true,
+      "http_status": 200,
+      "error": null,
+      "latency_ms": 141.95
+    },
+    {
+      "at_utc": "2026-10-28T09:43:53.771254+00:00",
+      "ready": true,
+      "http_status": 200,
+      "error": null,
+      "latency_ms": 349.66
+    },
+    {
+      "at_utc": "2026-10-28T09:43:55.142734+00:00",
+      "ready": true,
+      "http_status": 200,
+      "error": null,
+      "latency_ms": 444.4
+    },
+    {
+      "at_utc": "2026-10-28T09:43:56.587522+00:00",
+      "ready": true,
+      "http_status": 200,
+      "error": null,
+      "latency_ms": 173.8
+    },
+    {
+      "at_utc": "2026-10-28T09:43:57.767797+00:00",
+      "ready": true,
+      "http_status": 200,
+      "error": null,
+      "latency_ms": 214.49
+    },
+    {
+      "at_utc": "2026-10-28T09:43:58.982678+00:00",
+      "ready": true,
+      "http_status": 200,
+      "error": null,
+      "latency_ms": 385.14
+    }
+  ]
+}

@@ -1,6 +1,10 @@
 # Triển khai ứng dụng lên OpenStack sau giai đoạn local
 
+Phần TV3 về Octavia/Heat/Aodh, kiểm tra offline, thu bằng chứng và hợp đồng bàn giao nằm ở [elasticity/README.md](elasticity/README.md). Các template này chưa được kiểm chứng trên cụm thật.
+
 Đây là cấu hình ứng dụng, chưa phải bộ cài DevStack hoặc minh chứng hạ tầng. Chỉ thực hiện sau khi nhóm có VM và endpoint thật. Không chạy các thay đổi controller/network khi thành viên khác đang kiểm thử.
+
+Lab độc lập của TV2 đã được dựng và kiểm chứng trên một compute. Xem [hướng dẫn chạy, kiểm thử và những mục cần tích hợp tiếp](tv2/README.md). Các điều kiện hai Compute/AZ và Octavia bên dưới áp dụng cho cụm nhóm ở mốc tích hợp đầy đủ.
 
 ## Điều kiện
 
@@ -40,8 +44,10 @@ Không copy volume `file-data` local lên từng App VM để giả lập shared
 
 ## Các phần hạ tầng còn phải triển khai
 
+Bộ chuẩn bị TV3 nằm trong [elasticity/](elasticity/README.md): template LB, hai nhóm VM theo AZ, alarm tùy chọn, kiểm tra offline và công cụ thu snapshot chỉ đọc. Các template này chưa được chạy trên OpenStack; dùng runbook để validate và triển khai từng bước sau khi có môi trường thật.
+
 - Chốt bản DevStack/OpenStack và plugin đồng bộ trên cả ba node.
 - Thử nested KVM, Tailscale, MTU và đường đi của floating IP tới người xem demo.
 - Dựng Swift/Cinder/PostgreSQL, Nova AZ, Octavia và health monitor.
 - Chốt nguồn metric (ví dụ Ceilometer/Gnocchi), cấu hình Aodh và Heat autoscaling, cooldown, giới hạn VM; kiểm tra App VM mới nhận được cấu hình/secret và tham gia pool.
-- Thu log/ảnh/video thật. Chưa có kết quả OpenStack nào được khẳng định chỉ từ bộ mã local này.
+- Thu log/ảnh/video thật. [Bằng chứng lab TV2](tv2/evidence/README.md) xác nhận Swift/Cinder/PostgreSQL trên một compute; các mục hai AZ, Octavia, telemetry và autoscaling vẫn cần minh chứng tích hợp riêng.

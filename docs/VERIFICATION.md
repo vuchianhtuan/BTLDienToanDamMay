@@ -1,5 +1,7 @@
 # Kết quả kiểm chứng local ngày 22 tháng 10 năm 2026
 
+Đây là kết quả local tại thời điểm 22/10. Kết quả OpenStack thật của TV2 ngày 26–28/10 được lưu riêng tại [đối chiếu yêu cầu và bằng chứng TV2](../deploy/tv2/evidence/README.md).
+
 ## Môi trường
 
 - Windows host, Docker Desktop với Linux engine 29.7.2, Compose 5.3.1.

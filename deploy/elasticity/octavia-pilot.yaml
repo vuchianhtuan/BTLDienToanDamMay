@@ -1,0 +1,59 @@
+heat_template_version: 2018-08-31
+description: Add and remove one test backend in an existing Octavia pool.
+parameters:
+  pool_id: {type: string}
+  member_network_id: {type: string}
+  member_subnet_id: {type: string}
+  data_network_id: {type: string}
+  data_subnet_id: {type: string}
+  data_cidr: {type: string}
+  data_gateway: {type: string}
+  db_ip: {type: string}
+  swift_ip: {type: string}
+  security_group_id: {type: string}
+  image_id: {type: string}
+  flavor_id: {type: string}
+  availability_zone: {type: string}
+  container_image: {type: string}
+  app_env_b64: {type: string, hidden: true}
+
+resources:
+  pilot:
+    type: OS::Heat::AutoScalingGroup
+    properties:
+      min_size: 0
+      max_size: 1
+      desired_capacity: 0
+      cooldown: 60
+      resource:
+        type: octavia-pilot-member.yaml
+        properties:
+          pool_id: {get_param: pool_id}
+          member_network_id: {get_param: member_network_id}
+          member_subnet_id: {get_param: member_subnet_id}
+          data_network_id: {get_param: data_network_id}
+          data_subnet_id: {get_param: data_subnet_id}
+          data_cidr: {get_param: data_cidr}
+          data_gateway: {get_param: data_gateway}
+          db_ip: {get_param: db_ip}
+          swift_ip: {get_param: swift_ip}
+          security_group_id: {get_param: security_group_id}
+          image_id: {get_param: image_id}
+          flavor_id: {get_param: flavor_id}
+          availability_zone: {get_param: availability_zone}
+          container_image: {get_param: container_image}
+          app_env_b64: {get_param: app_env_b64}
+
+  scale_out:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      auto_scaling_group_id: {get_resource: pilot}
+      adjustment_type: change_in_capacity
+      scaling_adjustment: 1
+
+  scale_in:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      auto_scaling_group_id: {get_resource: pilot}
+      adjustment_type: change_in_capacity
+      scaling_adjustment: -1

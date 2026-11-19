@@ -1,0 +1,14 @@
+diff --git a/aodh/evaluator/gnocchi.py b/aodh/evaluator/gnocchi.py
+--- a/aodh/evaluator/gnocchi.py
++++ b/aodh/evaluator/gnocchi.py
+@@ -56,5 +56,10 @@ class GnocchiBase(threshold.ThresholdEvaluator):
+             raise threshold.InsufficientDataError(
+                 "No datapoint for granularity %s" % rule['granularity'], [])
+         statistics = statistics[-rule['evaluation_periods']:]
++        if (rule.get('metric') == 'cpu' and
++                rule.get('aggregation_method') == 'rate:mean'):
++            # Cumulative CPU can drop when group membership or a counter
++            # changes. Keep the window short so evaluation sees missing data.
++            statistics = [value for value in statistics if value >= 0]
+         LOG.debug('pruned statistics to %d', len(statistics))
+         return statistics

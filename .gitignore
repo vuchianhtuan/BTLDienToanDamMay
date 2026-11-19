@@ -2,10 +2,14 @@
 __pycache__/
 .pytest_cache/
 .venv/
+.venv-tools/
 data/
 *.pyc
 test-results/
 deploy/app.env
+deploy/tv2/lab-access.json
+deploy/elasticity/local/
+deploy/elasticity/**/*.env.json
 *.db
 .env.*
 !.env.example
@@ -25,3 +29,7 @@ htmlcov/
 Thumbs.db
 .idea/
 .vscode/
+deploy/elasticity/private/
+deploy/elasticity/evidence/
+deploy/elasticity/local/
+**/*.env.json
