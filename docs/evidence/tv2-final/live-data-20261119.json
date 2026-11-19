@@ -1,0 +1,98 @@
+{
+  "checked_at_utc": "2026-11-19T16:21:05.769351+00:00",
+  "checks": {
+    "app_a_ready_swift": true,
+    "postgresql_on_vdb": true,
+    "vip_hash_found_in_database": true,
+    "swift_container_accessible": true,
+    "cinder_attached_to_db_vm": true
+  },
+  "app_a_readiness": {
+    "status": "ready",
+    "storage": "swift",
+    "max_file_bytes": 26214400
+  },
+  "postgresql_data_directory": "/srv/postgresql/data",
+  "postgresql_mount": "/dev/vdb /srv/postgresql ext4",
+  "vip_hash_database_rows": [
+    {
+      "id": "42f42fae-4293-4b14-91f9-aace63c74456",
+      "filename": "octavia-retest-ba7aed4f0946.txt",
+      "size": 94,
+      "sha256": "0341dcca4d64a4c75059dbe80bb3117435caf21884439d633a9c7676d898b5cd",
+      "created_at": "2026-11-12T16:17:30.847703+00:00"
+    }
+  ],
+  "fixtures": [
+    {
+      "postgresql_row": {
+        "id": "42f42fae-4293-4b14-91f9-aace63c74456",
+        "filename": "octavia-retest-ba7aed4f0946.txt",
+        "size": 94,
+        "sha256": "0341dcca4d64a4c75059dbe80bb3117435caf21884439d633a9c7676d898b5cd",
+        "created_at": "2026-11-12T16:17:30.847703+00:00"
+      },
+      "swift_object": {
+        "container": "file-integrity",
+        "name": "42f42fae-4293-4b14-91f9-aace63c74456",
+        "size": 94,
+        "sha256": "0341dcca4d64a4c75059dbe80bb3117435caf21884439d633a9c7676d898b5cd"
+      },
+      "app_a_download": {
+        "size": 94,
+        "sha256": "0341dcca4d64a4c75059dbe80bb3117435caf21884439d633a9c7676d898b5cd"
+      },
+      "app_a_verify": {
+        "id": "42f42fae-4293-4b14-91f9-aace63c74456",
+        "filename": "octavia-retest-ba7aed4f0946.txt",
+        "intact": true,
+        "expected_sha256": "0341dcca4d64a4c75059dbe80bb3117435caf21884439d633a9c7676d898b5cd",
+        "actual_sha256": "0341dcca4d64a4c75059dbe80bb3117435caf21884439d633a9c7676d898b5cd",
+        "expected_size": 94,
+        "actual_size": 94,
+        "verified_at": "2026-11-19T16:21:07.015385+00:00"
+      },
+      "checks": {
+        "swift_matches_metadata": true,
+        "download_matches_swift": true,
+        "verify_intact": true,
+        "listed_in_first_200": true
+      }
+    }
+  ],
+  "cinder_volume": {
+    "id": "82f4a4cf-3dca-437a-a521-758be483a67e",
+    "status": "in-use",
+    "size_gib": 10,
+    "attachments": [
+      {
+        "id": "82f4a4cf-3dca-437a-a521-758be483a67e",
+        "attachment_id": "eee7dcae-6dac-438d-8741-6a8b01627338",
+        "volume_id": "82f4a4cf-3dca-437a-a521-758be483a67e",
+        "server_id": "48819692-232a-448b-824c-7b5f2c1a3b24",
+        "host_name": null,
+        "device": "/dev/vdb",
+        "attached_at": "2026-10-26T16:45:05.000000"
+      }
+    ]
+  },
+  "database_vm_id": "48819692-232a-448b-824c-7b5f2c1a3b24",
+  "vpn": {
+    "service": "active"
+  },
+  "database_pilot_candidate_roles": [
+    {
+      "rolname": "tv2_tv1_heat_eeb3f15c",
+      "rolcanlogin": true,
+      "rolvaliduntil": "2026-11-13T19:06:03+00:00"
+    }
+  ],
+  "keystone_application_credentials_for_tv2_user": [
+    {
+      "id": "c6d4f179eaa04b1c977fa5628906b87f",
+      "name": "tv2-tv1-heat-eeb3f15c",
+      "expires_at": "2026-11-13T19:06:03.000000"
+    }
+  ],
+  "credential_audit_scope": "TV2 Heat credential tv2-tv1-heat-eeb3f15c and matching DB role tv2_tv1_heat_eeb3f15c; both expired before this audit."
+}

@@ -2,13 +2,6 @@
   "submission_source_commit": "3f1a25723d4aac55776a3dac1ede3582526bf03a",
   "cloud_application_commit": "4650bd0999c892bd268ebb3302e324d54c834b2b",
   "historical_data_evidence_at_utc": "2026-10-28T09:58:30Z",
-  "fixture": {
-    "id": "aa49cb61-fe7e-4eba-bf4e-46874d13ac0e",
-    "sha256": "f019ae93c4afda3fd63c701abec8a9c3421f58371ec398b124cb6b4eae98226a",
-    "size": 42,
-    "sample_path": "sample.txt",
-    "sample_origin": "Recreated from the constant synthetic payload in deploy/tv2/verify_tv2.py; not downloaded from the cloud in this session."
-  },
   "historical_sources": {
     "verification": "../../../deploy/tv2/evidence/verification-20261028.json",
     "verification_script": "../../../deploy/tv2/verify_tv2.py",
@@ -41,14 +34,17 @@
     "DB port blocked from host outside App security group"
   ],
   "pending": [
-    "Same fixture upload/list/download/verify through VIP",
-    "Raw PostgreSQL row and Swift object evidence for that VIP fixture",
-    "Current Cinder attachment to database VM",
-    "Pilot credential expiry or revocation evidence",
-    "Current PostgreSQL, Swift and VPN readiness"
+    "Original upload/list through VIP evidence or new authorized VIP session",
+    "Current VIP readiness if required for rehearsal"
   ],
-  "current_live_verification": "NOT_RUN_AWS_SESSION_EXPIRED",
-  "pilot_credentials": "UNVERIFIED",
+  "current_live_verification": "TV2_APP_A_SWIFT_POSTGRESQL_CINDER_VPN_VERIFIED",
+  "pilot_credentials": {
+    "status": "EXPIRED",
+    "keystone_id": "c6d4f179eaa04b1c977fa5628906b87f",
+    "name": "tv2-tv1-heat-eeb3f15c",
+    "db_role": "tv2_tv1_heat_eeb3f15c",
+    "expired_at_utc": "2026-11-13T19:06:03Z"
+  },
   "vip_scale_in_log": {
     "path": "vip-scale-in-20261113.txt",
     "source": "User-provided original log in Downloads",
@@ -61,10 +57,31 @@
     },
     "file_sha256": "0341dcca4d64a4c75059dbe80bb3117435caf21884439d633a9c7676d898b5cd",
     "verify_intact": true,
-    "file_id": null,
+    "file_id": "42f42fae-4293-4b14-91f9-aace63c74456",
     "limitations": [
       "No UUID, filename, size, timestamp or raw API response in this log",
       "No Swift object or PostgreSQL row linkage in this log"
     ]
+  },
+  "historical_fixture_app_a_20261028": {
+    "id": "aa49cb61-fe7e-4eba-bf4e-46874d13ac0e",
+    "sha256": "f019ae93c4afda3fd63c701abec8a9c3421f58371ec398b124cb6b4eae98226a",
+    "size": 42,
+    "sample_path": "sample.txt",
+    "sample_origin": "Recreated from the constant synthetic payload in deploy/tv2/verify_tv2.py; not downloaded from the cloud in this session."
+  },
+  "fixture": {
+    "id": "42f42fae-4293-4b14-91f9-aace63c74456",
+    "sha256": "0341dcca4d64a4c75059dbe80bb3117435caf21884439d633a9c7676d898b5cd",
+    "size": 94,
+    "sample_path": "vip-sample.bin",
+    "sample_origin": "Downloaded from App A on 2026-11-19 and matched to Swift object, PostgreSQL row and supplied VIP scale-in log."
+  },
+  "lab_shutdown": {
+    "ec2_instance_id": "i-0179850f722838bcf",
+    "ec2_state": "stopped",
+    "app_vm_state": "SHUTOFF",
+    "database_vm_state": "SHUTOFF",
+    "confirmed_at_utc": "2026-11-19T16:25:49.257138+00:00"
   }
 }
