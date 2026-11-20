@@ -48,7 +48,7 @@
   "vip_scale_in_log": {
     "path": "vip-scale-in-20261113.txt",
     "source": "User-provided original log in Downloads",
-    "sha256": "d8e1b29940bbd6bdb569baa2074929a3a25d0245573bfcf1cc5ef89ffb710fff",
+    "sha256": "09b608245139f7433c3cefe46ea4c704ad9e33840b1e1b2240bd816cfa50bab9",
     "vip": "http://10.0.0.26",
     "readiness": {
       "status": "ready",
@@ -61,7 +61,9 @@
     "limitations": [
       "No UUID, filename, size, timestamp or raw API response in this log",
       "No Swift object or PostgreSQL row linkage in this log"
-    ]
+    ],
+    "original_source_sha256": "d8e1b29940bbd6bdb569baa2074929a3a25d0245573bfcf1cc5ef89ffb710fff",
+    "line_endings": "LF in the repository; original_source_sha256 refers to the user-provided file before Git line-ending normalization."
   },
   "historical_fixture_app_a_20261028": {
     "id": "aa49cb61-fe7e-4eba-bf4e-46874d13ac0e",

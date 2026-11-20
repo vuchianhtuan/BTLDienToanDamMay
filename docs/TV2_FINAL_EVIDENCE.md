@@ -43,7 +43,7 @@ Hai commit local trước đây 9e36544 và bbb610b chưa nằm trong lịch s�
 
 [Báo cáo kiểm tra trực tiếp](evidence/tv2-final/live-data-20261119.json) bắt đầu lúc 16:21:05 UTC ngày 19/11, tương ứng 23:21:05 UTC+7. Báo cáo đã chọn các trường cần thiết và không chứa API key, token, application secret hoặc mật khẩu.
 
-[Log VIP sau scale-in](evidence/tv2-final/vip-scale-in-20261113.txt) được người dùng cung cấp ngày 19/11. Log chỉ có bốn dòng, không ghi UUID, tên tệp, kích thước hoặc timestamp bên trong. Ngày 13/11 được xác định từ tên tệp và [biên bản nghiệm thu](evidence/autoscaling-acceptance-20261113.md). UUID được bổ sung từ truy vấn PostgreSQL theo hash trong phiên 19/11. Hai mốc thu thập được ghi riêng để đối chiếu khi viết báo cáo.
+[Log VIP sau scale-in](evidence/tv2-final/vip-scale-in-20261113.txt) được người dùng cung cấp ngày 19/11. Log chỉ có bốn dòng, không ghi UUID, tên tệp, kích thước hoặc timestamp bên trong. Ngày 13/11 được xác định từ tên tệp và [biên bản nghiệm thu](evidence/autoscaling-acceptance-20261113.md). UUID được bổ sung từ truy vấn PostgreSQL theo hash trong phiên 19/11. Git chuẩn hóa log về xuống dòng LF. Manifest ghi sha256 của tệp lưu trong repo và original_source_sha256 của tệp gốc người dùng cung cấp để kiểm tra hai bản tương ứng. Hai mốc thu thập được ghi riêng để đối chiếu khi viết báo cáo.
 
 ## Credential pilot của TV2
 
