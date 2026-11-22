@@ -142,15 +142,11 @@ Locust tái sử dụng fixture và kiểm tra cả hash/dung lượng cùng n�
 
 Kiểm tra bản chốt ngày 22/11/2026: **68 ca đạt** (17 frontend, 22 công cụ JSON/HTTP, 14 công cụ YAML, 15 validation/runner tải); JSON lint và validator của 4 template YAML đạt. Máy chốt mã không có Docker, nên chưa chạy lại bộ pytest ứng dụng và smoke PostgreSQL bằng Compose trong phiên này.
 
-## Thành phần gói nộp
+## Phạm vi repository và gói nộp
 
-| Sản phẩm theo yêu cầu | Tệp/vị trí |
-|---|---|
-| Bản đề xuất | Chưa có trong repository; bổ sung bản đề xuất đã nộp của nhóm |
-| Báo cáo cuối | [Báo cáo BTL Điện toán đám mây nhóm 14.docx](Báo%20cáo%20BTL%20Điện%20toán%20đám%20mây%20nhóm%2014.docx) |
-| Mã nguồn và cấu hình | Nhánh `main`, gồm các thành phần được liệt kê ở trên |
-| Video demo | [Video đủ ba giọng](record/File-Integrity-Demo-Nhom-14-Du-3-Giong-Final.mp4), khoảng 9 phút 34 giây; [mốc nội dung](record/README.md) |
-| Minh chứng bổ trợ | `docs/evidence/`, `deploy/tv2/evidence/` |
+GitHub chỉ lưu mã nguồn, cấu hình mẫu, kiểm thử, script vận hành và tài liệu kỹ thuật liên quan đến hệ thống. Các minh chứng kiểm thử đi kèm nằm trong `docs/evidence/` và `deploy/tv2/evidence/`.
+
+Theo yêu cầu bài tập lớn, bản đề xuất, báo cáo cuối và video demo được nộp riêng ngoài repository. Các định dạng tài liệu và bản ghi này đã được thêm vào `.gitignore`.
 
 ## Giới hạn
 

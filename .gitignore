@@ -39,3 +39,14 @@ deploy/elasticity/private/
 deploy/elasticity/evidence/
 deploy/elasticity/local/
 **/*.env.json
+
+# Submission documents and recordings are distributed separately.
+record/
+*.docx
+*.doc
+*.pdf
+*.pptx
+*.mp4
+*.m4a
+*.mp3
+*.wav
