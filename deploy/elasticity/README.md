@@ -1,6 +1,6 @@
 # Bộ chuẩn bị hạ tầng TV3
 
-Luồng JSON gồm `kit.py`, các template JSON và `probe_http.py`. Hai file `octavia-pilot*.yaml` là bài thử riêng dùng pool hiện có và hai mạng của ứng dụng. Xem [bản bàn giao](../../docs/HANDOFF-20261112.md) để biết các kết quả đã xác minh và trình tự chạy tiếp.
+Luồng JSON gồm `kit.py`, các template JSON và `probe_http.py`. Hai file `octavia-pilot*.yaml` là bài thử riêng dùng pool hiện có và hai mạng của ứng dụng. Xem [hướng dẫn triển khai](../README.md) và [nghiệm thu 13/11](../../docs/evidence/autoscaling-acceptance-20261113.md) để biết điều kiện vận hành và kết quả đã xác minh.
 
 **Bộ JSON đã kiểm thử offline.** Hai template YAML pilot đã qua xác thực Heat API. [Biên bản 13/11](../../docs/evidence/autoscaling-acceptance-20261113.md) ghi lại chu kỳ tự động 2 → 3 → 2 của pilot trên pool Octavia hiện có. Các lệnh `lint`, `plan`, `build` và unit test chạy được trên máy cá nhân với Python 3.12+.
 
@@ -119,7 +119,7 @@ python deploy/elasticity/kit.py collect --stack STACK_UUID --lb LB_UUID --pool P
 # Sau scale-out, sau scale-in: gọi lại với after-out.json, after-in.json.
 ```
 
-Snapshot chỉ giữ các cột trạng thái/ID/địa chỉ và timestamp UTC. Bổ sung metric, lịch sử Aodh, mapping VM→AZ, log tải và HTTP health theo cùng mốc thời gian. Xem [tiêu chí nghiệm thu](../../docs/HANDOFF-20261112.md).
+Snapshot chỉ giữ các cột trạng thái/ID/địa chỉ và timestamp UTC. Bổ sung metric, lịch sử Aodh, mapping VM→AZ, log tải và HTTP health theo cùng mốc thời gian. Đối chiếu [biên bản nghiệm thu](../../docs/evidence/autoscaling-acceptance-20261113.md).
 
 ## Tài liệu nguồn
 

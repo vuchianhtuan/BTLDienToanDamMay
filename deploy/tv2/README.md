@@ -1,6 +1,6 @@
 # Chạy và kiểm thử phần TV2 trên OpenStack
 
-Thành viên và agent đọc [AGENTS_TV2.md](../../AGENTS_TV2.md) trước để chạy từng bước, xem checklist của người quản lý và quy trình dành cho agent. Tài liệu dưới đây mô tả thêm mô hình, vận hành và kiểm thử tích hợp.
+Tài liệu mô tả mô hình lab TV2, cách truy cập, vận hành và kiểm thử dữ liệu. Các kết quả trong tài liệu thuộc phiên 26–28/10/2026. Kết quả tích hợp hai AZ, Octavia và autoscaling mới hơn nằm trong [README hệ thống](../../README.md) và [biên bản nghiệm thu 13/11](../../docs/evidence/autoscaling-acceptance-20261113.md).
 
 Phần backend và dữ liệu đã được triển khai thật trên EC2 (public IP tại ngày 28/10/2026: `18.140.98.121`). Ứng dụng chạy trong VM Nova private, lưu nội dung qua Swift và metadata trong PostgreSQL có thư mục dữ liệu đặt trên volume Cinder. Đây là môi trường độc lập của TV2 trên một compute; nhóm vẫn cần tích hợp hai AZ, Octavia và autoscaling.
 
@@ -93,7 +93,7 @@ Tham số dòng lệnh ghi đè cấu hình cho lần chạy đó; sửa `lab-ac
 - Mỗi lần bật EC2, bảo đảm dịch vụ OpenStack sẵn sàng, chạy `btl-tv2 start` rồi `btl-tv2 status` để bật/kiểm tra hai guest. Khi EC2 hoặc guest chưa bật, thành viên không thể dùng lab dù đã merge code.
 - Nếu public IP tự cấp đổi sau Stop/Start, thông báo endpoint mới để mỗi người sửa cấu hình, hoặc phối hợp TV1 dùng tên truy cập ổn định. Không cần commit lại IP hoặc sửa code ứng dụng.
 
-Tunnel mở bản ứng dụng **đã triển khai trên AWS**. Thay đổi code vừa merge trên máy thành viên không tự được triển khai lên App VM. Để phát triển code mới độc lập, dùng `./scripts/start.ps1` và hướng dẫn local trong [CONTRIBUTING.md](../../CONTRIBUTING.md); khi cần thử code mới với Swift/Cinder, triển khai theo [hướng dẫn cụm nhóm](../README.md) trong phiên tích hợp.
+Tunnel mở bản ứng dụng **đã triển khai trên AWS**. Thay đổi code trên máy thành viên không tự được triển khai lên App VM. Chạy local bằng `./scripts/start.ps1` theo [README](../../README.md); triển khai với Swift/Cinder theo [hướng dẫn cụm nhóm](../README.md).
 
 | Hiện tượng | Cách xử lý |
 |---|---|

@@ -19,6 +19,15 @@ test-results
 *.pem
 *.key
 .github
+AGENTS*.md
+.agents
+.codex
+.claude
 deploy/elasticity/local
 **/*.env.json
 **/app.env
+record
+*.docx
+*.pdf
+*.mp4
+*.m4a

@@ -1,6 +1,6 @@
 # Nghiệm thu autoscaling trên cụm ứng dụng ngày 13/11/2026
 
-[Kế hoạch chốt báo cáo và demo](../FINAL_DELIVERY_PLAN.md)
+[Tổng quan hệ thống và gói nộp](../../README.md)
 
 Lượt thử xác minh chuỗi **CPU App B → Gnocchi → Aodh → Heat → Octavia** trên ứng dụng File Integrity System. Pool bắt đầu với hai backend tại `tv1-az2` và `sg-test`, tăng lên ba rồi trở lại hai. Bản container kiểm thử là `file-integrity:4650bd0` từ commit `4650bd0999c892bd268ebb3302e324d54c834b2b`.
 

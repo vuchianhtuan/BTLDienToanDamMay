@@ -148,4 +148,4 @@ Tool chi chup tai mot thoi diem, khong tu poll va khong tu tao load; lap lai voi
 
 ## Trang thai kiem chung
 
-Chi ghi ket qua that vao `docs/TV3_PROGRESS.md`. Offline tests khong chung minh Heat service chap nhan schema, plugin co san, app image boot duoc, hay scale that. Chua co endpoint/credential cum nhom trong repo; chua deploy tai nguyen cloud trong dot nay.
+Ghi ket qua tung lan chay vao bien ban trong `docs/evidence/`, kem ngay va phien ban. Offline tests khong chung minh Heat service chap nhan schema, plugin co san, app image boot duoc, hay scale that. Xem README he thong de phan biet template mau va ket qua pilot da nghiem thu; endpoint/credential rieng khong nam trong repo.

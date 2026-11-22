@@ -29,6 +29,12 @@ htmlcov/
 Thumbs.db
 .idea/
 .vscode/
+
+# Local development metadata.
+AGENTS*.md
+.agents/
+.codex/
+.claude/
 deploy/elasticity/private/
 deploy/elasticity/evidence/
 deploy/elasticity/local/
